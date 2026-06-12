@@ -32,7 +32,7 @@ UNSPLASH_QUERY = 'animal baby'
 # -----------------------------------------------
 ADMIN_BOT_USERNAME = "" #without @
 
-THUMB_URL = os.environ.get("THUMB_URL", "https://i.ibb.co/DPCmWSKV/1000003297-3.png")
+THUMB_URL = os.environ.get("THUMB_URL", "https://files.catbox.moe/vg3vae.jpg")
 
 
 
