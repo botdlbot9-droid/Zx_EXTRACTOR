@@ -10,7 +10,7 @@ START_TXT = """
 **<blockquote>जीवन में शांति चाहते हैं तो दुसरों की शिकायतें करने से बेहतर है खुद को बदल लें।
 क्योंकि पुरी दुनिया में कारपेट बिछाने से खुद के पैरों में चप्पल पहन लेना अधिक सरल है।</blockquote>**
 
-**<blockquote>🌿 ᴍᴀɪɴᴛᴀɪɴᴇᴅ ʙʏ : <a href="https://t.me/ITsGOLU_OFFICIAL">𝐈𝐓'𝐬𝐆𝐎𝐋𝐔 🫠</a></blockquote>**
+**<blockquote>🌿 Handle ʙʏ : <a href="https://t.me/ZXBot1">𝗦𝘂𝗺𝗶𝘁 💗</a></blockquote>**
 """
 
 FORCE_MSG = """
