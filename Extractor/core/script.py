@@ -20,7 +20,7 @@ FORCE_MSG = """
 
 **<blockquote>ᴀᴄᴄᴏʀᴅɪɴɢ ᴛᴏ ᴍʏ ᴅᴀᴛᴀʙᴀsᴇ ʏᴏᴜ'ᴠᴇ ɴᴏᴛ ᴊᴏɪɴᴇᴅ ᴜᴘᴅᴀᴛᴇs ᴄʜᴀɴɴᴇʟ ʏᴇᴛ, ɪғ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴜsᴇ ᴍᴇ ᴛʜᴇɴ ᴊᴏɪɴ ᴜᴘᴅᴀᴛᴇs ᴄʜᴀɴɴᴇʟ ᴀɴᴅ sᴛᴀʀᴛ ᴍᴇ ᴀɢᴀɪɴ !</blockquote>**
 
-**<blockquote>🌿 ᴍᴀɪɴᴛᴀɪɴᴇᴅ ʙʏ : <a href="https://t.me/ITsGOLU_OFFICIAL">𝐈𝐓'𝐬𝐆𝐎𝐋𝐔 🫠</a></blockquote>**
+**<blockquote>🦋 Handle By : <a href="https://t.me/ZXBOT1">𝗦𝘂𝗺𝗶𝘁 💗</a></blockquote>**
 """
 
 MODES_TXT = """
@@ -47,7 +47,7 @@ PLANS_TXT = """
 <b><blockquote>ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴛʜᴇ ᴇxᴄʟᴜsɪᴠᴇ ᴘʀᴇᴍɪᴜᴍ sᴇᴄᴛɪᴏɴ, ᴡʜᴇʀᴇ ʏᴏᴜ'ʟʟ ғɪɴᴅ ᴄᴜʀᴀᴛᴇᴅ ɪɴsɪɢʜᴛs ᴀɴᴅ ᴇxᴘᴇʀɪᴇɴᴄᴇs ᴛᴀɪʟᴏʀᴇᴅ ᴛᴏ ᴛʜᴏsᴇ sᴇᴇᴋɪɴɢ ᴛᴏᴘ-ᴛɪᴇʀ ɪɴғᴏʀᴍᴀᴛɪᴏɴ ᴀɴᴅ sᴇʀᴠɪᴄᴇs.</blockquote>
 
 <blockquote>‼️ ᴀғᴛᴇʀ sᴇɴᴅɪɴɢ ᴀ sᴄʀᴇᴇɴsʜᴏᴛ ᴘʟᴇᴀsᴇ ɢɪᴠᴇ ᴜs sᴏᴍᴇ ᴛɪᴍᴇ ᴛᴏ ᴀᴅᴅ ʏᴏᴜ ɪɴ ᴛʜᴇ ᴘʀᴇᴍɪᴜᴍ ʟɪsᴛ.</blockquote></b>
-**<blockquote>🌿 ᴍᴀɪɴᴛᴀɪɴᴇᴅ ʙʏ : <a href="https://t.me/ITsGOLU_OFFICIAL">𝐈𝐓'𝐬𝐆𝐎𝐋𝐔 🫠</a></blockquote>**
+**<blockquote>🦋 Handle By : <a href="https://t.me/ZXBOT1">𝗦𝘂𝗺𝗶𝘁 💗</a></blockquote>**
 """
 
     
