@@ -52,8 +52,28 @@ for content_response in responses:
     except:  
         pass  
 
-    for item in content_response.get("data", []):  
-        try:  
+    for item in content_response.get("data", []):
+
+    # ================= TODAY FILTER =================
+    if mode == "2":
+        raw_date = (
+            item.get("createdAt")
+            or item.get("date")
+            or item.get("uploadedOn")
+            or item.get("updatedAt")
+            or ""
+        )
+
+        if not raw_date:
+            continue
+
+        item_date = str(raw_date)[:10]
+        today_date = datetime.utcnow().strftime("%Y-%m-%d")
+
+        if item_date != today_date:
+            continue
+
+    try:  
             video_details = item.get("videoDetails", {})  
             content_id = video_details.get("findKey") if video_details else None  
 
