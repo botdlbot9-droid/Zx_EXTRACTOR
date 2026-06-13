@@ -56,6 +56,10 @@ for content_response in responses:
 
     # ================= TODAY FILTER =================
     if mode == "2":
+for item in content_response.get("data", []):
+
+    # ================= TODAY FILTER =================
+    if mode == "2":
         raw_date = (
             item.get("createdAt")
             or item.get("date")
@@ -120,7 +124,7 @@ for content_response in responses:
                     total_links[0] += 1
 
     except:
-        continue  
+        continue
 
         except:  
             continue
