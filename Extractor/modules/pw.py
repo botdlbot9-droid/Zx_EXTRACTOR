@@ -92,8 +92,9 @@ for content_response in responses:
                                     total_links[0] += 1
                         except Exception as e:
                             continue
-            except Exception as e:
-                continue
+
+        except Exception as e:
+            continue
 
 def extract_mpd_info(url, content_id=None, batch_id=None):
     """Extract MPD URL info and handle PW's specific URL format"""
