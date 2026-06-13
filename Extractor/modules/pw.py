@@ -17,8 +17,6 @@ import aiohttp
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Dict
 import time
-
-# 👇 ADD THIS LINE HERE
 from Extractor.core.utils.filters import is_today
 
 india_timezone = pytz.timezone('Asia/Kolkata')
