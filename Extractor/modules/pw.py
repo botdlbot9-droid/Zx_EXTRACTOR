@@ -137,3 +137,171 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
 
 # NOTE:
 # PW login handler tumhara same rahega, is core file se extraction stable ho jayega.
+@app.on_message(filters.command(["pw"]))
+async def pw_login(client, message):
+
+    try:
+        query_msg = await app.ask(
+            message.chat.id,
+            "🔐 Enter PW Mobile No. or Login Token:"
+        )
+
+        user_input = query_msg.text.strip()
+
+        # ================= TOKEN DIRECT =================
+        if user_input.startswith("eyJ"):
+            token = user_input
+
+        # ================= MOBILE LOGIN =================
+        elif user_input.isdigit():
+
+            mob = user_input
+
+            payload = {
+                "username": mob,
+                "countryCode": "+91",
+                "organizationId": "5eb393ee95fab7468a79d189"
+            }
+
+            headers = {
+                "client-id": "5eb393ee95fab7468a79d189",
+                "client-version": "12.84",
+                "Client-Type": "MOBILE",
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            }
+
+            await message.reply_text("📲 Sending OTP...")
+
+            otp_response = requests.post(
+                "https://api.penpencil.co/v1/users/get-otp?smsType=0",
+                headers=headers,
+                json=payload
+            ).json()
+
+            if not otp_response:
+                await message.reply_text("❌ OTP send failed")
+                return
+
+            otp_msg = await app.ask(message.chat.id, "🔑 Enter OTP:")
+            otp = otp_msg.text.strip()
+
+            token_payload = {
+                "username": mob,
+                "otp": otp,
+                "client_id": "system-admin",
+                "client_secret": "KjPXuAVfC5xbmgreETNMaL7z",
+                "grant_type": "password",
+                "organizationId": "5eb393ee95fab7468a79d189",
+                "latitude": 0,
+                "longitude": 0
+            }
+
+            token_response = requests.post(
+                "https://api.penpencil.co/v3/oauth/token",
+                data=token_payload
+            ).json()
+
+            token = token_response.get("data", {}).get("access_token")
+
+            if not token:
+                await message.reply_text("❌ Login failed (OTP wrong)")
+                return
+
+        else:
+            await message.reply_text("❌ Invalid input")
+            return
+
+        # ================= HEADERS =================
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "client-id": "5eb393ee95fab7468a79d189",
+            "client-type": "WEB",
+            "client-version": "3.3.0",
+            "Accept": "application/json"
+        }
+
+        # ================= FETCH BATCHES =================
+        batch_response = requests.get(
+            "https://api.penpencil.co/v3/batches/my-batches?mode=1&amount=paid&page=1",
+            headers=headers
+        ).json()
+
+        batches = batch_response.get("data", [])
+
+        if not batches:
+            await message.reply_text("❌ No batches found")
+            return
+
+        batch_map = {}
+        batch_text = "📚 YOUR BATCHES:\n\n"
+
+        for b in batches:
+            bid = b.get("_id")
+            name = b.get("name")
+            batch_map[bid] = name
+            batch_text += f"{bid} ➜ {name}\n"
+
+        await message.reply_text(batch_text)
+
+        target_msg = await app.ask(message.chat.id, "🆔 Enter Batch ID:")
+        target_id = target_msg.text.strip()
+
+        if target_id not in batch_map:
+            await message.reply_text("❌ Invalid Batch ID")
+            return
+
+        batch_name = batch_map[target_id]
+
+        # ================= SUBJECTS =================
+        course = requests.get(
+            f"https://api.penpencil.co/v3/batches/{target_id}/details",
+            headers=headers
+        ).json()
+
+        subjects = course.get("data", {}).get("subjects", [])
+
+        if not subjects:
+            await message.reply_text("❌ No subjects found")
+            return
+
+        all_links = []
+        total_links = [0]
+
+        await message.reply_text("🚀 Extraction Started...")
+
+        async with aiohttp.ClientSession() as session:
+
+            tasks = []
+
+            for sub in subjects:
+                sid = sub.get("_id")
+                tasks.append(
+                    process_subject_content(
+                        session,
+                        target_id,
+                        sid,
+                        headers,
+                        all_links,
+                        total_links
+                    )
+                )
+
+            await asyncio.gather(*tasks)
+
+        # ================= SAVE FILE =================
+        filename = f"{batch_name}.txt"
+
+        with open(filename, "w", encoding="utf-8") as f:
+            for line in all_links:
+                f.write(line + "\n")
+
+        await message.reply_document(filename)
+
+        await app.send_message(
+            PREMIUM_LOGS,
+            f"✅ Extraction Done\nBatch: {batch_name}\nLinks: {total_links[0]}"
+        )
+
+    except Exception as e:
+        await message.reply_text(f"❌ Error: {str(e)}")
