@@ -73,55 +73,54 @@ for content_response in responses:
         if item_date != today_date:
             continue
 
-    try:  
-            video_details = item.get("videoDetails", {})  
-            content_id = video_details.get("findKey") if video_details else None  
+    try:
+        video_details = item.get("videoDetails", {}) or {}
+        content_id = video_details.get("findKey")
 
-            topic = clean_text(item.get("topic", ""))  
-            url = item.get("url", "")  
-            content_type = item.get("lectureType", "video").lower()  
+        topic = clean_text(item.get("topic", ""))
+        url = item.get("url", "")
+        content_type = (item.get("lectureType") or "video").lower()
 
-            if url:  
-                if ".mpd" in url:  
-                    final_url, parent_id, child_id = extract_mpd_info(  
-                        url, content_id, target_id  
-                    )  
-                    line = format_content_line(  
-                        topic, final_url, content_type, parent_id, child_id  
-                    )  
-                else:  
-                    line = format_content_line(topic, url, content_type)  
+        if url:
+            if ".mpd" in url:
+                final_url, parent_id, child_id = extract_mpd_info(
+                    url, content_id, target_id
+                )
+                line = format_content_line(
+                    topic, final_url, content_type, parent_id, child_id
+                )
+            else:
+                line = format_content_line(topic, url, content_type)
 
-                all_links.append(line)  
-                total_links[0] += 1  
+            all_links.append(line)
+            total_links[0] += 1
 
-            for hw in item.get("homeworkIds", []):  
-                hw_id = hw.get("_id")  
+        for hw in item.get("homeworkIds", []):
+            hw_id = hw.get("_id")
 
-                for attachment in hw.get("attachmentIds", []):  
-                    try:  
-                        name = clean_text(attachment.get("name", ""))  
-                        base_url = attachment.get("baseUrl", "")  
-                        key = attachment.get("key", "")  
+            for attachment in hw.get("attachmentIds", []):
+                name = clean_text(attachment.get("name", ""))
+                base_url = attachment.get("baseUrl", "")
+                key = attachment.get("key", "")
 
-                        if key:  
-                            full_url = f"{base_url}{key}"  
+                if key:
+                    full_url = f"{base_url}{key}"
 
-                            if ".mpd" in full_url:  
-                                final_url, parent_id, child_id = extract_mpd_info(  
-                                    full_url, hw_id, target_id  
-                                )  
-                                line = format_content_line(  
-                                    name, final_url, "notes", parent_id, child_id  
-                                )  
-                            else:  
-                                line = format_content_line(name, full_url, "notes")  
+                    if ".mpd" in full_url:
+                        final_url, parent_id, child_id = extract_mpd_info(
+                            full_url, hw_id, target_id
+                        )
+                        line = format_content_line(
+                            name, final_url, "notes", parent_id, child_id
+                        )
+                    else:
+                        line = format_content_line(name, full_url, "notes")
 
-                            all_links.append(line)  
-                            total_links[0] += 1  
+                    all_links.append(line)
+                    total_links[0] += 1
 
-                    except:  
-                        continue  
+    except:
+        continue  
 
         except:  
             continue
