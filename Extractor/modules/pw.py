@@ -38,20 +38,22 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
     responses = await asyncio.gather(*tasks)
 
     for content_response in responses:
-        if not content_response.get("data"):
-            continue
+    if not content_response.get("data"):
+        continue
 
-        # DEBUG - first item ka JSON print karega
-        try:
-            first_item = content_response.get("data", [])[0]
-            print(json.dumps(first_item, indent=2))
-        except:
-            pass
+    # DEBUG
+    try:
+        first_item = content_response.get("data", [])[0]
+        print(json.dumps(first_item, indent=2))
+    except:
+        pass
 
+    # ✅ THIS LOOP MUST BE INSIDE responses loop
     for item in content_response.get("data", []):
         try:
             video_details = item.get("videoDetails", {})
             content_id = video_details.get("findKey") if video_details else None
+
             topic = clean_text(item.get("topic", ""))
             url = item.get("url", "")
             content_type = "video"
