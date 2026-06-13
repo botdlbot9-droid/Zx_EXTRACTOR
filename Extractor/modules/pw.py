@@ -62,8 +62,7 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
             or item.get("uploadedOn")
             or item.get("updatedAt")
             or ""
-        )
-
+    )
         if not raw_date:
             continue
 
