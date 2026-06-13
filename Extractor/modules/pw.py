@@ -23,24 +23,28 @@ import time
 india_timezone = pytz.timezone('Asia/Kolkata')
 current_time = datetime.now(india_timezone)
 time_new = current_time.strftime("%d-%m-%Y %I:%M %p")
-
 async def process_subject_content(session, target_id, subject_id, headers, all_links, total_links):
+
     tasks = []
 
-async def process_subject_content(session, target_id, subject_id, headers, all_links: List[str], total_links: List[int]):
-tasks = []
+    for page in range(1, 12):
+        url = f"https://api.penpencil.co/v2/batches/{target_id}/subject/{subject_id}/contents?page={page}&contentType=exercises-notes-videos"
+        tasks.append(fetch_content(session, url, headers))
 
-for page in range(1, 12):  
-    url = f"https://api.penpencil.co/v2/batches/{target_id}/subject/{subject_id}/contents?page={page}&contentType=exercises-notes-videos"  
-    tasks.append(fetch_content(session, url, headers))  
+    responses = await asyncio.gather(*tasks)
 
-responses = await asyncio.gather(*tasks)  
+    for content_response in responses:
+        if not content_response or not content_response.get("data"):
+            continue
 
-# 👇 START HERE (CORRECT BLOCK)  
-for content_response in responses:  
-    if not content_response or not content_response.get("data"):  
-        continue  
+        for item in content_response.get("data", []):
+            try:
+                # your logic here
+                pass
 
+            except:
+                continue
+                
     # DEBUG (optional)  
     try:  
         first_item = content_response.get("data", [])[0]  
