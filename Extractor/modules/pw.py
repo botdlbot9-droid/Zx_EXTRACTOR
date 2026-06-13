@@ -46,50 +46,100 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
             pass
 
         for item in content_response.get("data", []):
+async def process_subject_content(session, target_id, subject_id, headers, all_links, total_links):
+
+    tasks = []
+
+    for page in range(1, 12):
+        url = f"https://api.penpencil.co/v2/batches/{target_id}/subject/{subject_id}/contents?page={page}&contentType=exercises-notes-videos"
+        tasks.append(fetch_content(session, url, headers))
+
+    responses = await asyncio.gather(*tasks)
+
+    for content_response in responses:
+
+        if not content_response or not content_response.get("data"):
+            continue
+
+        for item in content_response.get("data", []):
 
             try:
 
                 # ================= TODAY FILTER =================
-if mode == "2":
-    raw_date = (
-        item.get("createdAt")
-for item in content_response.get("data", []):
+                if mode == "2":
+                    raw_date = (
+                        item.get("createdAt")
+                        or item.get("date")
+                        or item.get("uploadedOn")
+                        or item.get("updatedAt")
+                        or ""
+                    )
 
-    try:
+                    if not raw_date:
+                        continue
 
-        # ================= TODAY FILTER =================
-        if mode == "2":
-            raw_date = (
-                item.get("createdAt")
-                or item.get("date")
-                or item.get("uploadedOn")
-                or item.get("updatedAt")
-                or ""
-            )
+                    item_date = str(raw_date)[:10]
+                    today_date = datetime.utcnow().strftime("%Y-%m-%d")
 
-            if not raw_date:
+                    if item_date != today_date:
+                        continue
+
+                if not item:
+                    continue
+
+                video_details = item.get("videoDetails", {}) or {}
+                content_id = video_details.get("findKey")
+
+                topic = clean_text(item.get("topic", ""))
+                url = item.get("url", "")
+                content_type = (item.get("lectureType") or "video").lower()
+
+                # ===== MAIN CONTENT =====
+                if url:
+                    if ".mpd" in url:
+                        final_url, parent_id, child_id = extract_mpd_info(
+                            url, content_id, target_id
+                        )
+                        line = format_content_line(
+                            topic, final_url, content_type, parent_id, child_id
+                        )
+                    else:
+                        line = format_content_line(topic, url, content_type)
+
+                    all_links.append(line)
+                    total_links[0] += 1
+
+                # ===== HOMEWORK =====
+                for hw in item.get("homeworkIds", []):
+                    hw_id = hw.get("_id")
+
+                    for attachment in hw.get("attachmentIds", []):
+                        try:
+                            name = clean_text(attachment.get("name", ""))
+                            base_url = attachment.get("baseUrl", "")
+                            key = attachment.get("key", "")
+
+                            if key:
+                                full_url = f"{base_url}{key}"
+
+                                if ".mpd" in full_url:
+                                    final_url, parent_id, child_id = extract_mpd_info(
+                                        full_url, hw_id, target_id
+                                    )
+                                    line = format_content_line(
+                                        name, final_url, "notes", parent_id, child_id
+                                    )
+                                else:
+                                    line = format_content_line(name, full_url, "notes")
+
+                                all_links.append(line)
+                                total_links[0] += 1
+
+                        except:
+                            continue
+
+            except:
                 continue
-
-            item_date = str(raw_date)[:10]
-            today_date = datetime.utcnow().strftime("%Y-%m-%d")
-
-            if item_date != today_date:
-                continue
-
-        if not item:
-            continue
-
-        video_details = item.get("videoDetails", {}) or {}
-        content_id = video_details.get("findKey")
-
-        topic = clean_text(item.get("topic", ""))
-        url = item.get("url", "")
-        content_type = (item.get("lectureType") or "video").lower()
-
-        # yaha aage tumhara logic rahega
-
-    except:
-        continue
 
 def extract_mpd_info(url, content_id=None, batch_id=None):
     if "cloudfront.net" in url:
