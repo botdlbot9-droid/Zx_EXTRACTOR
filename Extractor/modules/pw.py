@@ -35,7 +35,8 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
         tasks.append(fetch_content(session, url, headers))
     
     responses = await asyncio.gather(*tasks)
-    for content_response in responses:
+
+for content_response in responses:
     if not content_response.get("data"):
         continue
 
@@ -48,25 +49,29 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
 
     for item in content_response.get("data", []):
         try:
-                video_details = item.get("videoDetails", {})
-                content_id = video_details.get("findKey") if video_details else None
-                topic = clean_text(item.get("topic", ""))
-                url = item.get("url", "")
-                content_type = "video"
-                if item.get("lectureType"):
-                    content_type = item.get("lectureType").lower()
-                
-                if url:
-                    if '.mpd' in url:
-                        final_url, parent_id, child_id = extract_mpd_info(url, content_id, target_id)
-                        line = format_content_line(topic, final_url, content_type, parent_id, child_id)
-                        all_links.append(line)
-                        total_links[0] += 1
-                    else:
-                        line = format_content_line(topic, url, content_type)
-                        all_links.append(line)
-                        total_links[0] += 1
+            video_details = item.get("videoDetails", {})
+            content_id = video_details.get("findKey") if video_details else None
+            topic = clean_text(item.get("topic", ""))
+            url = item.get("url", "")
+            content_type = "video"
 
+            if item.get("lectureType"):
+                content_type = item.get("lectureType").lower()
+
+            if url:
+                if '.mpd' in url:
+                    final_url, parent_id, child_id = extract_mpd_info(
+                        url, content_id, target_id
+                    )
+                    line = format_content_line(
+                        topic, final_url, content_type, parent_id, child_id
+                    )
+                    all_links.append(line)
+                    total_links[0] += 1
+                else:
+                    line = format_content_line(topic, url, content_type)
+                    all_links.append(line)
+                    total_links[0] += 1
                 for hw in item.get("homeworkIds", []):
                     hw_id = hw.get("_id")
                     for attachment in hw.get("attachmentIds", []):
