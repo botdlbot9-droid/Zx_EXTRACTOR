@@ -31,23 +31,6 @@ async def fetch_content(session, url, headers) -> dict:
 async def process_subject_content(session, target_id, subject_id, headers, all_links: List[str], total_links: List[int]):
     tasks = []
 
-    for page in range(1, 12):
-        url = f"https://api.penpencil.co/v2/batches/{target_id}/subject/{subject_id}/contents?page={page}&contentType=exercises-notes-videos"
-        tasks.append(fetch_content(session, url, headers))
-
-    responses = await asyncio.gather(*tasks)
-
-# 👇 YAHAN SE START KARO (THIS IS THE PLACE)
-for content_response in responses:
-    if not content_response.get("data"):
-        continue
-
-    # DEBUG
-    try:
-        first_item = content_response.get("data", [])[0]
-        print(json.dumps(first_item, indent=2))
-    except:
-        pass
 async def process_subject_content(session, target_id, subject_id, headers, all_links: List[str], total_links: List[int]):
     tasks = []
 
@@ -57,11 +40,12 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
 
     responses = await asyncio.gather(*tasks)
 
-    # 👇 THIS MUST BE INSIDE FUNCTION
+    # 👇 START HERE (CORRECT BLOCK)
     for content_response in responses:
-        if not content_response.get("data"):
+        if not content_response or not content_response.get("data"):
             continue
 
+        # DEBUG (optional)
         try:
             first_item = content_response.get("data", [])[0]
             print(json.dumps(first_item, indent=2))
@@ -75,10 +59,7 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
 
                 topic = clean_text(item.get("topic", ""))
                 url = item.get("url", "")
-                content_type = "video"
-
-                if item.get("lectureType"):
-                    content_type = item.get("lectureType").lower()
+                content_type = item.get("lectureType", "video").lower()
 
                 if url:
                     if ".mpd" in url:
