@@ -1,24 +1,25 @@
 import requests
 import asyncio
 from pyrogram import Client, filters
-import requests, os, sys, re
+import os, sys, re
 import math
-import json, asyncio
+import json
 from config import PREMIUM_LOGS, join
 import subprocess
 import datetime
 from Extractor import app
-from pyrogram import filters
 from subprocess import getstatusoutput
 from datetime import datetime
 from Extractor.core.utils import forward_to_log
 import pytz
-import re
 import unicodedata
 import aiohttp
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Dict
 import time
+
+# 👇 ADD THIS LINE HERE
+from Extractor.core.utils.filters import is_today
 
 india_timezone = pytz.timezone('Asia/Kolkata')
 current_time = datetime.now(india_timezone)
