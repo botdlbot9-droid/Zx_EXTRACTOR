@@ -130,10 +130,12 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
                                 total_links[0] += 1
 
                         except:
-                            continue
+    continue
 
-            except:
-                continue
+except:
+    continue
+
+
 def extract_mpd_info(url, content_id=None, batch_id=None):
     """Extract MPD URL info and handle PW's specific URL format"""
     # For cloudfront URLs, we use content_id as childId and batch_id as parentId
