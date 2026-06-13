@@ -17,7 +17,7 @@ import aiohttp
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Dict
 import time
-from Extractor.core.utils.filters import is_today
+from Extractor.core.utils.logger import forward_to_log
 
 india_timezone = pytz.timezone('Asia/Kolkata')
 current_time = datetime.now(india_timezone)
