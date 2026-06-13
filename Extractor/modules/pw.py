@@ -48,17 +48,7 @@ for content_response in responses:
         print(json.dumps(first_item, indent=2))
     except:
         pass
-
-    for item in content_response.get("data", []):
-        try:
-            video_details = item.get("videoDetails", {})
-            content_id = video_details.get("findKey") if video_details else None
-
-            topic = clean_text(item.get("topic", ""))
-            url = item.get("url", "")
-            content_type = "video"
 async def process_subject_content(session, target_id, subject_id, headers, all_links: List[str], total_links: List[int]):
-
     tasks = []
 
     for page in range(1, 12):
@@ -67,7 +57,7 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
 
     responses = await asyncio.gather(*tasks)
 
-    # ✅ YAHAN SE START (INSIDE FUNCTION)
+    # 👇 THIS MUST BE INSIDE FUNCTION
     for content_response in responses:
         if not content_response.get("data"):
             continue
@@ -130,17 +120,17 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
                                 total_links[0] += 1
 
                         except:
-    continue
+                            continue
 
-except:
-    continue
+            except:
+                continue
 
 
 def extract_mpd_info(url, content_id=None, batch_id=None):
-    """Extract MPD URL info and handle PW's specific URL format"""
-    # For cloudfront URLs, we use content_id as childId and batch_id as parentId
-    if 'cloudfront.net' in url:
+    if "cloudfront.net" in url:
         return url, batch_id, content_id
+
+    return url, batch_id, content_id
     
     # Handle regular URLs with parentId/childId
     base_url = url.split('parentId=')[0].rstrip('&') if 'parentId=' in url else url
