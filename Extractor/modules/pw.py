@@ -52,7 +52,7 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
     except:  
         pass  
 
-    for item in content_response.get("data", []):
+for item in content_response.get("data", []):
 
     # ================= TODAY FILTER =================
     if mode == "2":
@@ -62,7 +62,8 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
             or item.get("uploadedOn")
             or item.get("updatedAt")
             or ""
-    )
+        )
+
         if not raw_date:
             continue
 
@@ -73,6 +74,9 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
             continue
 
     try:
+        if not item:
+            continue
+
         video_details = item.get("videoDetails", {}) or {}
         content_id = video_details.get("findKey")
 
@@ -80,48 +84,7 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
         url = item.get("url", "")
         content_type = (item.get("lectureType") or "video").lower()
 
-        if url:
-            if ".mpd" in url:
-                final_url, parent_id, child_id = extract_mpd_info(
-                    url, content_id, target_id
-                )
-                line = format_content_line(
-                    topic, final_url, content_type, parent_id, child_id
-                )
-            else:
-                line = format_content_line(topic, url, content_type)
-
-            all_links.append(line)
-            total_links[0] += 1
-
-        # ================= HOMEWORK =================
-        for hw in item.get("homeworkIds", []):
-            hw_id = hw.get("_id")
-
-            for attachment in hw.get("attachmentIds", []):
-                try:
-                    name = clean_text(attachment.get("name", ""))
-                    base_url = attachment.get("baseUrl", "")
-                    key = attachment.get("key", "")
-
-                    if key:
-                        full_url = f"{base_url}{key}"
-
-                        if ".mpd" in full_url:
-                            final_url, parent_id, child_id = extract_mpd_info(
-                                full_url, hw_id, target_id
-                            )
-                            line = format_content_line(
-                                name, final_url, "notes", parent_id, child_id
-                            )
-                        else:
-                            line = format_content_line(name, full_url, "notes")
-
-                        all_links.append(line)
-                        total_links[0] += 1
-
-                except:
-                    continue
+        # --- rest of your logic here ---
 
     except:
         continue
