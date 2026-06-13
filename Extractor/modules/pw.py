@@ -30,22 +30,23 @@ async def fetch_content(session, url, headers) -> dict:
 
 async def process_subject_content(session, target_id, subject_id, headers, all_links: List[str], total_links: List[int]):
     tasks = []
+
     for page in range(1, 12):
         url = f"https://api.penpencil.co/v2/batches/{target_id}/subject/{subject_id}/contents?page={page}&contentType=exercises-notes-videos"
         tasks.append(fetch_content(session, url, headers))
-    
+
     responses = await asyncio.gather(*tasks)
 
-for content_response in responses:
-    if not content_response.get("data"):
-        continue
+    for content_response in responses:
+        if not content_response.get("data"):
+            continue
 
-    # DEBUG - first item ka JSON print karega
-    try:
-        first_item = content_response.get("data", [])[0]
-        print(json.dumps(first_item, indent=2))
-    except:
-        pass
+        # DEBUG - first item ka JSON print karega
+        try:
+            first_item = content_response.get("data", [])[0]
+            print(json.dumps(first_item, indent=2))
+        except:
+            pass
 
     for item in content_response.get("data", []):
         try:
