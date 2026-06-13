@@ -57,55 +57,83 @@ for content_response in responses:
             topic = clean_text(item.get("topic", ""))
             url = item.get("url", "")
             content_type = "video"
+async def process_subject_content(session, target_id, subject_id, headers, all_links: List[str], total_links: List[int]):
 
-            if item.get("lectureType"):
-                content_type = item.get("lectureType").lower()
+    tasks = []
 
-            if url:
-                if ".mpd" in url:
-                    final_url, parent_id, child_id = extract_mpd_info(
-                        url, content_id, target_id
-                    )
-                    line = format_content_line(
-                        topic, final_url, content_type, parent_id, child_id
-                    )
-                else:
-                    line = format_content_line(topic, url, content_type)
+    for page in range(1, 12):
+        url = f"https://api.penpencil.co/v2/batches/{target_id}/subject/{subject_id}/contents?page={page}&contentType=exercises-notes-videos"
+        tasks.append(fetch_content(session, url, headers))
 
-                all_links.append(line)
-                total_links[0] += 1
+    responses = await asyncio.gather(*tasks)
 
-            for hw in item.get("homeworkIds", []):
-                hw_id = hw.get("_id")
-
-                for attachment in hw.get("attachmentIds", []):
-                    try:
-                        name = clean_text(attachment.get("name", ""))
-                        base_url = attachment.get("baseUrl", "")
-                        key = attachment.get("key", "")
-
-                        if key:
-                            full_url = f"{base_url}{key}"
-
-                            if ".mpd" in full_url:
-                                final_url, parent_id, child_id = extract_mpd_info(
-                                    full_url, hw_id, target_id
-                                )
-                                line = format_content_line(
-                                    name, final_url, "notes", parent_id, child_id
-                                )
-                            else:
-                                line = format_content_line(name, full_url, "notes")
-
-                            all_links.append(line)
-                            total_links[0] += 1
-
-                    except Exception:
-                        continue
-
-        except Exception:
+    # ✅ YAHAN SE START (INSIDE FUNCTION)
+    for content_response in responses:
+        if not content_response.get("data"):
             continue
-# 👆 YAHAN END
+
+        try:
+            first_item = content_response.get("data", [])[0]
+            print(json.dumps(first_item, indent=2))
+        except:
+            pass
+
+        for item in content_response.get("data", []):
+            try:
+                video_details = item.get("videoDetails", {})
+                content_id = video_details.get("findKey") if video_details else None
+
+                topic = clean_text(item.get("topic", ""))
+                url = item.get("url", "")
+                content_type = "video"
+
+                if item.get("lectureType"):
+                    content_type = item.get("lectureType").lower()
+
+                if url:
+                    if ".mpd" in url:
+                        final_url, parent_id, child_id = extract_mpd_info(
+                            url, content_id, target_id
+                        )
+                        line = format_content_line(
+                            topic, final_url, content_type, parent_id, child_id
+                        )
+                    else:
+                        line = format_content_line(topic, url, content_type)
+
+                    all_links.append(line)
+                    total_links[0] += 1
+
+                for hw in item.get("homeworkIds", []):
+                    hw_id = hw.get("_id")
+
+                    for attachment in hw.get("attachmentIds", []):
+                        try:
+                            name = clean_text(attachment.get("name", ""))
+                            base_url = attachment.get("baseUrl", "")
+                            key = attachment.get("key", "")
+
+                            if key:
+                                full_url = f"{base_url}{key}"
+
+                                if ".mpd" in full_url:
+                                    final_url, parent_id, child_id = extract_mpd_info(
+                                        full_url, hw_id, target_id
+                                    )
+                                    line = format_content_line(
+                                        name, final_url, "notes", parent_id, child_id
+                                    )
+                                else:
+                                    line = format_content_line(name, full_url, "notes")
+
+                                all_links.append(line)
+                                total_links[0] += 1
+
+                        except:
+                            continue
+
+            except:
+                continue
 def extract_mpd_info(url, content_id=None, batch_id=None):
     """Extract MPD URL info and handle PW's specific URL format"""
     # For cloudfront URLs, we use content_id as childId and batch_id as parentId
