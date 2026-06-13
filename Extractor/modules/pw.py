@@ -84,7 +84,9 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
         # rest logic here...
 
     except:
-        continue
+    continue
+
+
 def extract_mpd_info(url, content_id=None, batch_id=None):
     if "cloudfront.net" in url:
         return url, batch_id, content_id
