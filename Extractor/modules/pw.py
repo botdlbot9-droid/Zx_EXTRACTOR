@@ -223,9 +223,9 @@ async def pw_login(client, message):
 
         # ================= FETCH BATCHES =================
         batch_response = requests.get(
-            "https://api.penpencil.co/v3/batches/my-batches?mode=1&amount=paid&page=1",
-            headers=headers
-        ).json()
+    "https://api.penpencil.co/v3/batches/my-batches?mode=1&amount=paid&page=1",
+    headers=headers
+).json()
 
         batches = batch_response.get("data", [])
 
