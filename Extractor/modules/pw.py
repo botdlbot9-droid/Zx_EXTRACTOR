@@ -50,45 +50,23 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
             try:
 
                 # ================= TODAY FILTER =================
-                if mode == "2":
-                    raw_date = (
-async def process_subject_content(session, target_id, subject_id, headers, all_links, total_links):
+if mode == "2":
+    raw_date = (
+        item.get("createdAt")
+        or item.get("date")
+        or item.get("uploadedOn")
+        or item.get("updatedAt")
+        or ""
+    )
 
-    tasks = []
+    if not raw_date:
+        continue
 
-    for page in range(1, 12):
-        url = f"https://api.penpencil.co/v2/batches/{target_id}/subject/{subject_id}/contents?page={page}&contentType=exercises-notes-videos"
-        tasks.append(fetch_content(session, url, headers))
+    item_date = str(raw_date)[:10]
+    today_date = datetime.utcnow().strftime("%Y-%m-%d")
 
-    responses = await asyncio.gather(*tasks)
-
-    for content_response in responses:
-
-        if not content_response or not content_response.get("data"):
-            continue
-
-        for item in content_response.get("data", []):
-
-            try:
-
-                # TODAY FILTER
-                if mode == "2":
-                    raw_date = (
-                        item.get("createdAt")
-                        or item.get("date")
-                        or item.get("uploadedOn")
-                        or item.get("updatedAt")
-                        or ""
-                    )
-
-                    if not raw_date:
-                        continue
-
-                    item_date = str(raw_date)[:10]
-                    today_date = datetime.utcnow().strftime("%Y-%m-%d")
-
-                    if item_date != today_date:
-                        continue
+    if item_date != today_date:
+        continue
 
                 if not item:
                     continue
