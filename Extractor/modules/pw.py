@@ -54,37 +54,37 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
 
     for item in content_response.get("data", []):
 
-# ================= TODAY FILTER =================
-if mode == "2":
-    raw_date = (
-        item.get("createdAt")
-        or item.get("date")
-        or item.get("uploadedOn")
-        or item.get("updatedAt")
-        or ""
-    )
+    # ================= TODAY FILTER =================
+    if mode == "2":
+        raw_date = (
+            item.get("createdAt")
+            or item.get("date")
+            or item.get("uploadedOn")
+            or item.get("updatedAt")
+            or ""
+        )
 
-    if not raw_date:
+        if not raw_date:
+            continue
+
+        item_date = str(raw_date)[:10]
+        today_date = datetime.utcnow().strftime("%Y-%m-%d")
+
+        if item_date != today_date:
+            continue
+
+    try:
+        video_details = item.get("videoDetails", {})
+        content_id = video_details.get("findKey")
+
+        topic = clean_text(item.get("topic", ""))
+        url = item.get("url", "")
+        content_type = (item.get("lectureType") or "video").lower()
+
+        # rest logic here...
+
+    except:
         continue
-
-    item_date = str(raw_date)[:10]
-    today_date = datetime.utcnow().strftime("%Y-%m-%d")
-
-    if item_date != today_date:
-        continue
-
-try:
-    video_details = item.get("videoDetails", {})
-    content_id = video_details.get("findKey")
-
-    topic = clean_text(item.get("topic", ""))
-    url = item.get("url", "")
-    content_type = (item.get("lectureType") or "video").lower()
-
-    # rest logic here...
-
-except:
-    continue
 def extract_mpd_info(url, content_id=None, batch_id=None):
     if "cloudfront.net" in url:
         return url, batch_id, content_id
