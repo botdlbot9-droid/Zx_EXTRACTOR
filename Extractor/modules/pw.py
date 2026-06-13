@@ -73,7 +73,6 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
         if item_date != today_date:
             continue
 
-    # 👇 yaha se tumhara normal code start hoga
     try:
         video_details = item.get("videoDetails", {})
         content_id = video_details.get("findKey")
@@ -82,13 +81,10 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
         url = item.get("url", "")
         content_type = (item.get("lectureType") or "video").lower()
 
-        # rest logic...
+        # rest of logic here...
 
     except:
         continue
-        except:  
-            continue
-
 def extract_mpd_info(url, content_id=None, batch_id=None):
 if "cloudfront.net" in url:
 return url, batch_id, content_id
