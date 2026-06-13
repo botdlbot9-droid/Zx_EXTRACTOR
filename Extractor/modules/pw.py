@@ -24,12 +24,8 @@ india_timezone = pytz.timezone('Asia/Kolkata')
 current_time = datetime.now(india_timezone)
 time_new = current_time.strftime("%d-%m-%Y %I:%M %p")
 
-async def fetch_content(session, url, headers) -> dict:
-    async with session.get(url, headers=headers) as response:
-        return await response.json()
-
-async def process_subject_content(session, target_id, subject_id, headers, all_links: List[str], total_links: List[int]):
-tasks = []
+async def process_subject_content(session, target_id, subject_id, headers, all_links, total_links):
+    tasks = []
 
 async def process_subject_content(session, target_id, subject_id, headers, all_links: List[str], total_links: List[int]):
 tasks = []
