@@ -52,6 +52,28 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
                 # ================= TODAY FILTER =================
                 if mode == "2":
                     raw_date = (
+async def process_subject_content(session, target_id, subject_id, headers, all_links, total_links):
+
+    tasks = []
+
+    for page in range(1, 12):
+        url = f"https://api.penpencil.co/v2/batches/{target_id}/subject/{subject_id}/contents?page={page}&contentType=exercises-notes-videos"
+        tasks.append(fetch_content(session, url, headers))
+
+    responses = await asyncio.gather(*tasks)
+
+    for content_response in responses:
+
+        if not content_response or not content_response.get("data"):
+            continue
+
+        for item in content_response.get("data", []):
+
+            try:
+
+                # TODAY FILTER
+                if mode == "2":
+                    raw_date = (
                         item.get("createdAt")
                         or item.get("date")
                         or item.get("uploadedOn")
@@ -78,7 +100,6 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
                 url = item.get("url", "")
                 content_type = (item.get("lectureType") or "video").lower()
 
-                # ===== MAIN CONTENT =====
                 if url:
                     if ".mpd" in url:
                         final_url, parent_id, child_id = extract_mpd_info(
@@ -93,10 +114,7 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
                     all_links.append(line)
                     total_links[0] += 1
 
-                # ===== HOMEWORK =====
                 for hw in item.get("homeworkIds", []):
-                    hw_id = hw.get("_id")
-
                     for attachment in hw.get("attachmentIds", []):
                         try:
                             name = clean_text(attachment.get("name", ""))
@@ -108,7 +126,7 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
 
                                 if ".mpd" in full_url:
                                     final_url, parent_id, child_id = extract_mpd_info(
-                                        full_url, hw_id, target_id
+                                        full_url, hw.get("_id"), target_id
                                     )
                                     line = format_content_line(
                                         name, final_url, "notes", parent_id, child_id
@@ -124,7 +142,6 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
 
             except:
                 continue
-
 def extract_mpd_info(url, content_id=None, batch_id=None):
     if "cloudfront.net" in url:
         return url, batch_id, content_id
