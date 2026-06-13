@@ -227,9 +227,26 @@ async def pw_login(app, message):
             reply_markup=None
         )
         
-        target_id_msg = await app.ask(message.chat.id, text="🆔 **Enter the Course ID here:**")
-        target_id = target_id_msg.text.strip()
+        target_id_msg = await app.ask(
+    message.chat.id,
+    text="🆔 **Enter the Course ID here:**"
+)
 
+target_id = target_id_msg.text.strip()
+
+mode_msg = await app.ask(
+    message.chat.id,
+    text="""
+📚 Select Extraction Mode
+
+1️⃣ Full Batch
+2️⃣ Today Class
+
+👉 Reply with 1 or 2
+"""
+)
+
+mode = mode_msg.text.strip()
 
         if target_id not in batch_map:
             await message.reply_text("❌ **Invalid Course ID! Please try again.**")
