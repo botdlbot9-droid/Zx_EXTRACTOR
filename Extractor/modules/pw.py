@@ -143,14 +143,17 @@ child_id = child_match.group(1) if child_match else content_id
 return base_url, parent_id, child_id
 
 def clean_text(text):
-if not text:
-return ""
-# Remove control characters and normalize
-text = "".join(ch for ch in text if unicodedata.category(ch)[0] != "C")
-text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii')
-# Replace problematic characters
-text = text.replace(":", "").replace("/", "").replace("|", "").replace("\", "")
-return text
+    if not text:
+        return ""
+
+    # Remove control characters and normalize
+    text = "".join(ch for ch in text if unicodedata.category(ch)[0] != "C")
+    text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii')
+
+    # Replace problematic characters
+    text = text.replace(":", "").replace("/", "").replace("|", "").replace("\\", "")
+
+    return text
 
 def format_content_line(name, url, content_type="", parent_id=None, child_id=None):
 """Format content line with modern design and metadata"""
