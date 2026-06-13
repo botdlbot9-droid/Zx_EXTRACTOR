@@ -3,6 +3,8 @@ import json
 import time
 import re
 import unicodedata
+import requests
+
 from typing import List
 
 import aiohttp
@@ -13,7 +15,6 @@ from pyrogram import filters
 from Extractor import app
 from Extractor.core.utils import forward_to_log
 from config import PREMIUM_LOGS, join
-
 # ================= TIME =================
 india_timezone = pytz.timezone("Asia/Kolkata")
 time_new = datetime.now(india_timezone).strftime("%d-%m-%Y %I:%M %p")
