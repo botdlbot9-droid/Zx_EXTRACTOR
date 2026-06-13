@@ -111,16 +111,13 @@ def extract_mpd_info(url, content_id=None, batch_id=None):
     if "cloudfront.net" in url:
         return url, batch_id, content_id
 
-    return url, batch_id, content_id
-    
-    # Handle regular URLs with parentId/childId
     base_url = url.split('parentId=')[0].rstrip('&') if 'parentId=' in url else url
     parent_match = re.search(r'parentId=([^&]+)', url)
     child_match = re.search(r'childId=([^&]+)', url)
-    
+
     parent_id = parent_match.group(1) if parent_match else batch_id
     child_id = child_match.group(1) if child_match else content_id
-    
+
     return base_url, parent_id, child_id
 
 def clean_text(text):
