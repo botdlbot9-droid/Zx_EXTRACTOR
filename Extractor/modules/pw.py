@@ -48,12 +48,10 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
     except:
         pass
 
-    # ✅ THIS LOOP MUST BE INSIDE responses loop
     for item in content_response.get("data", []):
         try:
             video_details = item.get("videoDetails", {})
             content_id = video_details.get("findKey") if video_details else None
-
             topic = clean_text(item.get("topic", ""))
             url = item.get("url", "")
             content_type = "video"
