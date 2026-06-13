@@ -57,16 +57,20 @@ THREADPOOL = ThreadPoolExecutor(max_workers=2000)
 TIMEOUT = 300  # 5 minutes timeout
 
 buttons = InlineKeyboardMarkup([
-                [
-                  InlineKeyboardButton("Lᴏɢɪɴ/Wɪᴛʜᴏᴜᴛ Lᴏɢɪɴ", callback_data="modes_")
-                ],[
-                  InlineKeyboardButton("🔍 Fɪɴᴅ Aᴘɪ", callback_data="findapi_"),
-                  InlineKeyboardButton("📓 Aᴘᴘx Aᴘᴘs", callback_data="appxlist")
-                ],
-                [
-                  InlineKeyboardButton("📝 Tᴇxᴛ ⟷ HTML", callback_data="converter_")
-                ]
-              ])
+    [
+        InlineKeyboardButton("⚡ Physics Wallah Login & Extractor ⚡", callback_data="pw_")
+    ],
+    [
+        InlineKeyboardButton("Lᴏɢɪɴ/Wɪᴛʜᴏᴜᴛ Lᴏɢɪɴ", callback_data="modes_")
+    ],
+    [
+        InlineKeyboardButton("🔍 Fɪɴᴅ Aᴘɪ", callback_data="findapi_"),
+        InlineKeyboardButton("📓 Aᴘᴘx Aᴘᴘs", callback_data="appxlist")
+    ],
+    [
+        InlineKeyboardButton("📝 Tᴇxᴛ ⟷ HTML", callback_data="converter_")
+    ]
+])
 
 
 modes_button = [[
