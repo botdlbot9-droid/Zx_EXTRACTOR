@@ -319,7 +319,7 @@ async def pw_login(app, message):
                 f.write(line + "\n")
 
             f.write("\n━━━━━━━━━━━━━━━━━━━━━\n")
-            f.write("💓 Join Us:  https://t.me/ZXBOT1\n")
+            f.write("💓 Join Us:  @ZXBOT1\n")
             f.write("━━━━━━━━━━━━━━━━━━━━━")
 
         end_time = time.time()
@@ -337,7 +337,7 @@ async def pw_login(app, message):
     f"⚡ 𝐄𝐱𝐭𝐫𝐚𝐜𝐭𝐢𝐨𝐧 𝐓𝐢𝐦𝐞 ➜ {extraction_time:.2f}s\n"
     f"📅 𝐃𝐚𝐭𝐞         ➜ {time_new}\n\n"
     "━━━━━━━━━━━━━━━━━━━\n"
-    "🌐 Join Us ➜ ✳️ JOIN BACKUP\n"
+    "🌐 Join Us ➜ [JOIN BACKUP](https://t.me/ZXBOT1)\n"
     "━━━━━━━━━━━━━━━━━━━"
         )
         await app.send_document(chat_id=message.chat.id, document=filename, caption=caption)
