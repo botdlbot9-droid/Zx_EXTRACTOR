@@ -319,7 +319,7 @@ async def pw_login(app, message):
                 f.write(line + "\n")
 
             f.write("\n━━━━━━━━━━━━━━━━━━━━━\n")
-            f.write("🌟 Join Us: @ZXBOT1\n")
+            f.write("💓 Join Us:  https://t.me/ZXBOT1\n")
             f.write("━━━━━━━━━━━━━━━━━━━━━")
 
         end_time = time.time()
