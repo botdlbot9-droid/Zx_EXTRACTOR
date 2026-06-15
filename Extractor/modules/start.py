@@ -58,7 +58,7 @@ TIMEOUT = 300  # 5 minutes timeout
 
 buttons = InlineKeyboardMarkup([
     [
-        InlineKeyboardButton("⚡ Physics Wallah Login & Extractor ⚡", callback_data="pw_")
+        InlineKeyboardButton("💓 Physics Wallah Login & Extractor 💗", callback_data="pw_")
     ],
     [
         InlineKeyboardButton("Lᴏɢɪɴ/Wɪᴛʜᴏᴜᴛ Lᴏɢɪɴ", callback_data="modes_")
