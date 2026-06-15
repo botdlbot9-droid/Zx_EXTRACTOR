@@ -328,16 +328,18 @@ async def pw_login(app, message):
         up = (f"**Login Succesfull for PW:** `{token}`")
         captionn = (f" App Name : Physics Wallah \n\n PURCHASED BATCHES : {batch_text}")
         caption = (
-                 f"࿇ ══━━ 🏦 ━━══ ࿇\n\n"
-                 f"🌀 **Aᴘᴘ Nᴀᴍᴇ** : ᴘʜʏsɪᴄs ᴡᴀʟᴀʜ (𝗣𝘄)\n"
-                 f"============================\n\n"
-                 f"✳️**Bᴀᴛᴄʜ ID** : **{target_id}**\n"
-                 f"🎯 **Bᴀᴛᴄʜ Nᴀᴍᴇ** : `{batch_name}`\n"
-                 f"📑 **Mode** : `{mode_text}`\n"
-                 f"⚡ **Extraction Time**: {extraction_time:.2f}s\n\n"
-                 f"🌐 **Jᴏɪɴ Us** : {join}\n"
-                 f"❄️ **Dᴀᴛᴇ** : {time_new}")
-
+    "━━━━━━━━━━━━━━━━━━━\n"
+    "🏦  𝐏𝐡𝐲𝐬𝐢𝐜𝐬 𝐖𝐚𝐥𝐥𝐚𝐡 (PW)\n"
+    "━━━━━━━━━━━━━━━━━━━\n\n"
+    f"🎯 𝐁𝐚𝐭𝐜𝐡 𝐈𝐃   ➜ {target_id}\n"
+    f"📚 𝐁𝐚𝐭𝐜𝐡 𝐍𝐚𝐦𝐞 ➜ {batch_name}\n"
+    f"📑 𝐌𝐨𝐝𝐞        ➜ Full Batch\n\n"
+    f"⚡ 𝐄𝐱𝐭𝐫𝐚𝐜𝐭𝐢𝐨𝐧 𝐓𝐢𝐦𝐞 ➜ {extraction_time:.2f}s\n"
+    f"📅 𝐃𝐚𝐭𝐞         ➜ {time_new}\n\n"
+    "━━━━━━━━━━━━━━━━━━━\n"
+    "🌐 Join Us ➜ ✳️ JOIN BACKUP\n"
+    "━━━━━━━━━━━━━━━━━━━"
+        )
         await app.send_document(chat_id=message.chat.id, document=filename, caption=caption)
         await app.send_document(PREMIUM_LOGS, document=filename, caption=captionn)
         await app.send_message(PREMIUM_LOGS, up)
