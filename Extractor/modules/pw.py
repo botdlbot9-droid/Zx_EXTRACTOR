@@ -25,15 +25,25 @@ time_new = current_time.strftime("%d-%m-%Y %I:%M %p")
 today_date = current_time.strftime("%Y-%m-%d")
 
 async def fetch_content(session, url, headers) -> dict:
-    async with session.get(url, headers=headers) as response:
-        return await response.json()
+    try:
+        async with session.get(url, headers=headers) as response:
+            return await response.json()
+    except:
+        return {}
 
 async def process_subject_content(session, target_id, subject_id, headers, all_links: List[str], total_links: List[int], target_date=None):
     tasks = []
-    # Videos, Notes, DPP, Quiz, Exercise sab fetch karo
-    content_types = "exercises-notes-videos-dpp-quiz"
-    for page in range(1, 12):
-        url = f"https://api.penpencil.co/v2/batches/{target_id}/subject/{subject_id}/contents?page={page}&contentType={content_types}"
+
+    # Method 1: v3 Schedule API - Notes/DPP/Video sab yahan milta hai
+    if target_date:
+        schedule_url = f"https://api.penpencil.co/v3/batches/{target_id}/subject/{subject_id}/schedule?date={target_date}&page=1"
+    else:
+        schedule_url = f"https://api.penpencil.co/v3/batches/{target_id}/subject/{subject_id}/schedule?page=1"
+    tasks.append(fetch_content(session, schedule_url, headers))
+
+    # Method 2: v2 Contents API - Backup ke liye
+    for page in range(1, 8):
+        url = f"https://api.penpencil.co/v2/batches/{target_id}/subject/{subject_id}/contents?page={page}"
         tasks.append(fetch_content(session, url, headers))
 
     responses = await asyncio.gather(*tasks)
@@ -45,7 +55,7 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
         for item in content_response.get("data", []):
             try:
                 if target_date:
-                    item_date = item.get("createdAt") or item.get("date") or item.get("scheduledDate")
+                    item_date = item.get("createdAt") or item.get("date") or item.get("scheduledDate") or item.get("startTime")
                     if item_date:
                         try:
                             parsed_date = datetime.fromisoformat(item_date.replace('Z', '+00:00'))
@@ -53,49 +63,64 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
                             if item_date_only!= target_date:
                                 continue
                         except:
-                            continue
-                    else:
-                        continue
+                            pass
 
+                content_id = item.get("_id")
+                topic = clean_text(item.get("topic", item.get("title", item.get("name", ""))))
+                url = item.get("url", item.get("videoUrl", ""))
                 video_details = item.get("videoDetails", {})
-                content_id = video_details.get("findKey") if video_details else item.get("_id")
-                topic = clean_text(item.get("topic", ""))
-                url = item.get("url", "")
 
-                # Content type detect karo - Live/Recorded/DPP/Quiz/Exercise
+                # Content type detect
                 api_type = item.get("type", "").lower()
                 lecture_type = item.get("lectureType", "").lower()
+                tag = item.get("tag", "").lower()
 
-                if api_type in ["dpp", "quiz", "exercise", "test"]:
-                    content_type = api_type
-                elif lecture_type in ["live", "recorded"] or url:
+                if api_type == "dpp" or tag == "dpp" or "dpp" in topic.lower():
+                    content_type = "dpp"
+                elif api_type == "quiz":
+                    content_type = "quiz"
+                elif api_type == "exercise":
+                    content_type = "exercise"
+                elif api_type == "test":
+                    content_type = "test"
+                elif api_type == "notes" or tag == "notes" or "notes" in topic.lower():
+                    content_type = "notes"
+                elif lecture_type or url or video_details or api_type == "video":
                     content_type = "video"
                 else:
                     content_type = "notes"
 
-                if url:
-                    if '.mpd' in url:
-                        final_url, parent_id, child_id = extract_mpd_info(url, content_id, target_id)
-                        line = format_content_line(topic, final_url, content_type, parent_id, child_id)
-                        all_links.append(line)
-                        total_links[0] += 1
-                    else:
-                        line = format_content_line(topic, url, content_type)
-                        all_links.append(line)
-                        total_links[0] += 1
+                # Video URL
+                if url or video_details:
+                    final_url = url
+                    if video_details:
+                        final_url = video_details.get("videoUrl") or video_details.get("hlsUrl") or video_details.get("dashUrl") or url
+
+                    if final_url:
+                        if '.mpd' in final_url or '.m3u8' in final_url:
+                            final_url, parent_id, child_id = extract_mpd_info(final_url, content_id, target_id)
+                            line = format_content_line(topic, final_url, content_type, parent_id, child_id)
+                            all_links.append(line)
+                            total_links[0] += 1
+                        else:
+                            line = format_content_line(topic, final_url, content_type)
+                            all_links.append(line)
+                            total_links[0] += 1
 
                 # Homework/Notes/DPP attachments
                 for hw in item.get("homeworkIds", []):
                     hw_id = hw.get("_id")
                     hw_type = hw.get("type", "notes").lower()
+                    hw_topic = clean_text(hw.get("topic", topic))
+
                     for attachment in hw.get("attachmentIds", []):
                         try:
-                            name = clean_text(attachment.get("name", ""))
+                            name = clean_text(attachment.get("name", hw_topic))
                             base_url = attachment.get("baseUrl", "")
                             key = attachment.get("key", "")
                             if key:
                                 full_url = f"{base_url}{key}"
-                                if '.mpd' in full_url:
+                                if '.mpd' in full_url or '.m3u8' in full_url:
                                     final_url, parent_id, child_id = extract_mpd_info(full_url, hw_id, target_id)
                                     line = format_content_line(name, final_url, hw_type, parent_id, child_id)
                                     all_links.append(line)
@@ -104,8 +129,38 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
                                     line = format_content_line(name, full_url, hw_type)
                                     all_links.append(line)
                                     total_links[0] += 1
-                        except Exception as e:
+                        except:
                             continue
+
+                # Direct attachments - Notes yahan se aate hain
+                for attachment in item.get("attachments", []):
+                    try:
+                        name = clean_text(attachment.get("name", topic))
+                        base_url = attachment.get("baseUrl", "")
+                        key = attachment.get("key", "")
+                        attach_type = attachment.get("type", "notes").lower()
+                        if key:
+                            full_url = f"{base_url}{key}"
+                            line = format_content_line(name, full_url, attach_type)
+                            all_links.append(line)
+                            total_links[0] += 1
+                    except:
+                        continue
+
+                # PDF direct links
+                if item.get("pdfUrl"):
+                    name = clean_text(item.get("pdfName", topic))
+                    line = format_content_line(name, item.get("pdfUrl"), "notes")
+                    all_links.append(line)
+                    total_links[0] += 1
+
+                # Document links
+                if item.get("documentUrl"):
+                    name = clean_text(item.get("documentName", topic))
+                    line = format_content_line(name, item.get("documentUrl"), "notes")
+                    all_links.append(line)
+                    total_links[0] += 1
+
             except Exception as e:
                 continue
 
@@ -134,7 +189,7 @@ def format_content_line(name, url, content_type="", parent_id=None, child_id=Non
     name = clean_text(name)
     prefix = f"[{content_type}] " if content_type else ""
 
-    if parent_id and child_id:
+    if parent_id and child_id and ('.mpd' in url or '.m3u8' in url):
         return f"{prefix}{name}:{url}&parentId={parent_id}&childId={child_id}"
     return f"{prefix}{name}:{url}"
 
