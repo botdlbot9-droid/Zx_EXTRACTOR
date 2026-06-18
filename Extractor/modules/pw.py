@@ -22,13 +22,13 @@ import time
 india_timezone = pytz.timezone('Asia/Kolkata')
 current_time = datetime.now(india_timezone)
 time_new = current_time.strftime("%d-%m-%Y %I:%M %p")
-today_date = current_time.strftime("%Y-%m-%d") # Aaj ki date
+today_date = current_time.strftime("%Y-%m-%d")
 
 async def fetch_content(session, url, headers) -> dict:
     async with session.get(url, headers=headers) as response:
         return await response.json()
 
-async def process_subject_content(session, target_id, subject_id, headers, all_links: List[str], total_links: List[int], today_only=False):
+async def process_subject_content(session, target_id, subject_id, headers, all_links: List[str], total_links: List[int], target_date=None):
     tasks = []
     for page in range(1, 12):
         url = f"https://api.penpencil.co/v2/batches/{target_id}/subject/{subject_id}/contents?page={page}&contentType=exercises-notes-videos"
@@ -42,16 +42,18 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
 
         for item in content_response.get("data", []):
             try:
-                # FIX 3: Today class filter
-                if today_only:
+                if target_date:
                     item_date = item.get("createdAt") or item.get("date") or item.get("scheduledDate")
                     if item_date:
-                        # PW me date "2024-09-15T..." format me aati hai
-                        item_date_only = item_date.split("T")[0]
-                        if item_date_only!= today_date:
+                        try:
+                            parsed_date = datetime.fromisoformat(item_date.replace('Z', '+00:00'))
+                            item_date_only = parsed_date.astimezone(india_timezone).strftime("%Y-%m-%d")
+                            if item_date_only!= target_date:
+                                continue
+                        except:
                             continue
                     else:
-                        continue # date nahi hai to skip
+                        continue
 
                 video_details = item.get("videoDetails", {})
                 content_id = video_details.get("findKey") if video_details else None
@@ -237,21 +239,63 @@ async def pw_login(app, message):
             await message.reply_text("❌ **Invalid Course ID! Please try again.**")
             return
 
-        # FIX 4: Option choose karne ka menu
         option_msg = await app.ask(
             message.chat.id,
-            text="**Kya extract karna hai?**\n\n`1` - Full Batch\n`2` - Today Class Only\n\nReply 1 ya 2"
+            text="**Kya extract karna hai?**\n\n`1` - Full Batch\n`2` - Today Class Only\n\nYa koi bhi date dalo:\n`15`, `17 june`, `15 june 2026`, `25-12`, `2024-01-01`"
         )
-        option = option_msg.text.strip()
+        option = option_msg.text.strip().lower()
 
-        today_only = False
+        target_date = None
         mode_text = "Full Batch"
-        if option == "2":
-            today_only = True
+
+        if option == "1":
+            mode_text = "Full Batch"
+        elif option == "2":
+            target_date = today_date
             mode_text = "Today Class"
-        elif option!= "1":
-            await message.reply_text("❌ **Invalid option! 1 ya 2 choose karo.**")
-            return
+        else:
+            try:
+                month_map = {
+                    'jan':1, 'january':1, 'feb':2, 'february':2, 'mar':3, 'march':3,
+                    'apr':4, 'april':4, 'may':5, 'jun':6, 'june':6, 'jul':7, 'july':7,
+                    'aug':8, 'august':8, 'sep':9, 'september':9, 'oct':10, 'october':10,
+                    'nov':11, 'november':11, 'dec':12, 'december':12
+                }
+
+                if re.match(r'^\d{1,2}$', option):
+                    day = int(option)
+                    target_date = datetime(current_time.year, current_time.month, day).strftime("%Y-%m-%d")
+
+                elif re.match(r'^(\d{1,2})\s+([a-z]+)\s*(\d{4})?$', option):
+                    match = re.match(r'^(\d{1,2})\s+([a-z]+)\s*(\d{4})?$', option)
+                    day, month_str, year = match.groups()
+                    month = month_map.get(month_str[:3])
+                    year = int(year) if year else current_time.year
+                    if month:
+                        target_date = datetime(year, month, int(day)).strftime("%Y-%m-%d")
+
+                elif re.match(r'^\d{1,2}-\d{1,2}(-\d{4})?$', option):
+                    parts = option.split('-')
+                    day = int(parts[0])
+                    month = int(parts[1])
+                    year = int(parts[2]) if len(parts) == 3 else current_time.year
+                    target_date = datetime(year, month, day).strftime("%Y-%m-%d")
+
+                elif re.match(r'^\d{4}-\d{1,2}-\d{1,2}$', option):
+                    target_date = datetime.strptime(option, "%Y-%m-%d").strftime("%Y-%m-%d")
+
+                if target_date:
+                    mode_text = f"Date {target_date}"
+                else:
+                    await message.reply_text("❌ **Galat input**\n\n`1` - Full Batch\n`2` - Today\nYa date: `15`, `17 june`, `15 june 2026`")
+                    return
+
+            except ValueError:
+                await message.reply_text("❌ **Date exist nahi karti**")
+                return
+            except Exception:
+                await message.reply_text("❌ **Format galat hai**")
+                return
 
         batch_name = batch_map[target_id]
         filename = f"{batch_name.replace('/', '_').replace(':', '_').replace('|', '_')}_{mode_text.replace(' ', '_')}.txt"
@@ -301,7 +345,7 @@ async def pw_login(app, message):
                 all_subjects_progress[sn] = False
                 await update_progress()
 
-                task = process_subject_content(session, target_id, si, headers, all_links, total_links, today_only)
+                task = process_subject_content(session, target_id, si, headers, all_links, total_links, target_date)
                 tasks.append(task)
 
             await asyncio.gather(*tasks)
@@ -319,23 +363,23 @@ async def pw_login(app, message):
                 f.write(line + "\n")
 
             f.write("\n━━━━━━━━━━━━━━━━━━━━━\n")
-            f.write("💓 Join Us:  @ZXBOT1\n")
+            f.write("💓 Join Us: @ZXBOT1\n")
             f.write("━━━━━━━━━━━━━━━━━━━━━")
 
         end_time = time.time()
         extraction_time = end_time - start_time
 
         up = (f"**Login Succesfull for PW:** `{token}`")
-        captionn = (f" App Name : Physics Wallah \n\n PURCHASED BATCHES : {batch_text}")
+        captionn = (f" App Name : Physics Wallah \n\n PURCHASED BATCHES : {batch_text}\n Mode: {mode_text}")
         caption = (
     "━━━━━━━━━━━━━━━━━━━\n"
-    "🏦  𝐏𝐡𝐲𝐬𝐢𝐜𝐬 𝐖𝐚𝐥𝐥𝐚𝐡 (PW)\n"
+    "🏦 𝐏𝐡𝐲𝐬𝐢𝐜𝐬 𝐖𝐚𝐥𝐥𝐚𝐡 (PW)\n"
     "━━━━━━━━━━━━━━━━━━━\n\n"
-    f"🎯 𝐁𝐚𝐭𝐜𝐡 𝐈𝐃   ➜ {target_id}\n"
+    f"🎯 𝐁𝐚𝐭𝐜𝐡 𝐈𝐃 ➜ {target_id}\n"
     f"📚 𝐁𝐚𝐭𝐜𝐡 𝐍𝐚𝐦𝐞 ➜ {batch_name}\n"
-    f"📑 𝐌𝐨𝐝𝐞        ➜ Full Batch\n\n"
+    f"📑 𝐌𝐨𝐝𝐞 ➜ {mode_text}\n\n"
     f"⚡ 𝐄𝐱𝐭𝐫𝐚𝐜𝐭𝐢𝐨𝐧 𝐓𝐢𝐦𝐞 ➜ {extraction_time:.2f}s\n"
-    f"📅 𝐃𝐚𝐭𝐞         ➜ {time_new}\n\n"
+    f"📅 𝐃𝐚𝐭𝐞 ➜ {time_new}\n\n"
     "━━━━━━━━━━━━━━━━━━━\n"
     "🌐 Join Us ➜ [JOIN BACKUP](https://t.me/ZXBOT1)\n"
     "━━━━━━━━━━━━━━━━━━━"
