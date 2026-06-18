@@ -30,8 +30,10 @@ async def fetch_content(session, url, headers) -> dict:
 
 async def process_subject_content(session, target_id, subject_id, headers, all_links: List[str], total_links: List[int], target_date=None):
     tasks = []
+    # Videos, Notes, DPP, Quiz, Exercise sab fetch karo
+    content_types = "exercises-notes-videos-dpp-quiz"
     for page in range(1, 12):
-        url = f"https://api.penpencil.co/v2/batches/{target_id}/subject/{subject_id}/contents?page={page}&contentType=exercises-notes-videos"
+        url = f"https://api.penpencil.co/v2/batches/{target_id}/subject/{subject_id}/contents?page={page}&contentType={content_types}"
         tasks.append(fetch_content(session, url, headers))
 
     responses = await asyncio.gather(*tasks)
@@ -56,12 +58,20 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
                         continue
 
                 video_details = item.get("videoDetails", {})
-                content_id = video_details.get("findKey") if video_details else None
+                content_id = video_details.get("findKey") if video_details else item.get("_id")
                 topic = clean_text(item.get("topic", ""))
                 url = item.get("url", "")
-                content_type = "video"
-                if item.get("lectureType"):
-                    content_type = item.get("lectureType").lower()
+
+                # Content type detect karo - Live/Recorded/DPP/Quiz/Exercise
+                api_type = item.get("type", "").lower()
+                lecture_type = item.get("lectureType", "").lower()
+
+                if api_type in ["dpp", "quiz", "exercise", "test"]:
+                    content_type = api_type
+                elif lecture_type in ["live", "recorded"] or url:
+                    content_type = "video"
+                else:
+                    content_type = "notes"
 
                 if url:
                     if '.mpd' in url:
@@ -74,8 +84,10 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
                         all_links.append(line)
                         total_links[0] += 1
 
+                # Homework/Notes/DPP attachments
                 for hw in item.get("homeworkIds", []):
                     hw_id = hw.get("_id")
+                    hw_type = hw.get("type", "notes").lower()
                     for attachment in hw.get("attachmentIds", []):
                         try:
                             name = clean_text(attachment.get("name", ""))
@@ -85,11 +97,11 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
                                 full_url = f"{base_url}{key}"
                                 if '.mpd' in full_url:
                                     final_url, parent_id, child_id = extract_mpd_info(full_url, hw_id, target_id)
-                                    line = format_content_line(name, final_url, "notes", parent_id, child_id)
+                                    line = format_content_line(name, final_url, hw_type, parent_id, child_id)
                                     all_links.append(line)
                                     total_links[0] += 1
                                 else:
-                                    line = format_content_line(name, full_url, "notes")
+                                    line = format_content_line(name, full_url, hw_type)
                                     all_links.append(line)
                                     total_links[0] += 1
                         except Exception as e:
