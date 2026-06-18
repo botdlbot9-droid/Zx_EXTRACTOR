@@ -34,12 +34,12 @@ async def fetch_content(session, url, headers) -> dict:
 async def process_subject_content(session, target_id, subject_id, headers, all_links: List[str], total_links: List[int], target_date=None):
     tasks = []
 
-    # Tera purana wala API call - v3 schedule
+    # Tera original v3 schedule API
     for page in range(1, 15):
         schedule_url = f"https://api.penpencil.co/v3/batches/{target_id}/subject/{subject_id}/schedule?page={page}"
         tasks.append(fetch_content(session, schedule_url, headers))
 
-    # Notes/DPP/Quiz ke liye v2 contents
+    # v2 contents for notes/dpp
     content_types = ["videos", "notes", "exercises", "dpp", "quiz"]
     for content_type in content_types:
         for page in range(1, 8):
@@ -54,7 +54,7 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
 
         for item in content_response.get("data", []):
             try:
-                # Date filter - bas ye naya hai
+                # Date filter add kiya - bas itna naya hai
                 if target_date:
                     item_date = item.get("createdAt") or item.get("date") or item.get("scheduledDate") or item.get("startTime")
                     if item_date:
@@ -69,7 +69,6 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
                 content_id = item.get("_id")
                 topic = clean_text(item.get("topic", item.get("title", item.get("name", ""))))
 
-                # Baaki sab tera purana logic
                 video_url = item.get("url") or item.get("videoUrl")
                 video_details = item.get("videoDetails", {})
                 if video_details:
@@ -94,7 +93,6 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
                 else:
                     content_type = "notes"
 
-                # Video URL
                 if video_url:
                     if '.mpd' in video_url or '.m3u8' in video_url:
                         final_url, parent_id, child_id = extract_mpd_info(video_url, content_id, target_id)
@@ -106,7 +104,6 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
                         all_links.append(line)
                         total_links[0] += 1
 
-                # Homework - DPP/Notes yahan se aayega
                 for hw in item.get("homeworkIds", []):
                     hw_id = hw.get("_id")
                     hw_type = hw.get("type", "notes").lower()
@@ -131,7 +128,6 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
                         except:
                             continue
 
-                # Direct attachments - Concise Notes yahan se aayega
                 for attachment in item.get("attachments", []):
                     try:
                         name = clean_text(attachment.get("name", topic))
