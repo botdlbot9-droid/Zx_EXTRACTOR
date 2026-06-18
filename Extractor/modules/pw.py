@@ -34,9 +34,13 @@ async def fetch_content(session, url, headers) -> dict:
 async def process_subject_content(session, target_id, subject_id, headers, all_links: List[str], total_links: List[int], target_date=None):
     tasks = []
 
-    # Important: contentType specify karna zaroori hai warna PW kuch nahi bhejta
-    content_types = ["videos", "notes", "exercises", "dpp", "quiz"]
+    # Tera purana wala API call - v3 schedule
+    for page in range(1, 15):
+        schedule_url = f"https://api.penpencil.co/v3/batches/{target_id}/subject/{subject_id}/schedule?page={page}"
+        tasks.append(fetch_content(session, schedule_url, headers))
 
+    # Notes/DPP/Quiz ke liye v2 contents
+    content_types = ["videos", "notes", "exercises", "dpp", "quiz"]
     for content_type in content_types:
         for page in range(1, 8):
             url = f"https://api.penpencil.co/v2/batches/{target_id}/subject/{subject_id}/contents?page={page}&contentType={content_type}"
@@ -50,6 +54,7 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
 
         for item in content_response.get("data", []):
             try:
+                # Date filter - bas ye naya hai
                 if target_date:
                     item_date = item.get("createdAt") or item.get("date") or item.get("scheduledDate") or item.get("startTime")
                     if item_date:
@@ -63,10 +68,13 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
 
                 content_id = item.get("_id")
                 topic = clean_text(item.get("topic", item.get("title", item.get("name", ""))))
-                url = item.get("url", "")
-                video_details = item.get("videoDetails", {})
 
-                # Type detect karo
+                # Baaki sab tera purana logic
+                video_url = item.get("url") or item.get("videoUrl")
+                video_details = item.get("videoDetails", {})
+                if video_details:
+                    video_url = video_details.get("videoUrl") or video_details.get("hlsUrl") or video_details.get("dashUrl") or video_details.get("url") or video_url
+
                 api_type = item.get("type", "").lower()
                 lecture_type = item.get("lectureType", "").lower()
                 tag = item.get("tag", "").lower()
@@ -81,14 +89,12 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
                     content_type = "test"
                 elif api_type == "notes" or tag == "notes":
                     content_type = "notes"
-                elif lecture_type or url or video_details or api_type == "video":
+                elif lecture_type or video_url or video_details or api_type == "video":
                     content_type = "video"
                 else:
                     content_type = "notes"
 
                 # Video URL
-                video_url = url or video_details.get("videoUrl") or video_details.get("hlsUrl") or video_details.get("dashUrl")
-
                 if video_url:
                     if '.mpd' in video_url or '.m3u8' in video_url:
                         final_url, parent_id, child_id = extract_mpd_info(video_url, content_id, target_id)
@@ -100,7 +106,7 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
                         all_links.append(line)
                         total_links[0] += 1
 
-                # Notes/DPP attachments
+                # Homework - DPP/Notes yahan se aayega
                 for hw in item.get("homeworkIds", []):
                     hw_id = hw.get("_id")
                     hw_type = hw.get("type", "notes").lower()
@@ -125,7 +131,7 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
                         except:
                             continue
 
-                # Direct attachments
+                # Direct attachments - Concise Notes yahan se aayega
                 for attachment in item.get("attachments", []):
                     try:
                         name = clean_text(attachment.get("name", topic))
@@ -162,10 +168,13 @@ def clean_text(text):
     text = "".join(ch for ch in text if unicodedata.category(ch)[0]!= "C")
     text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii')
     text = text.replace(":", "_").replace("/", "_").replace("|", "_").replace("\\", "_")
+    text = re.sub(r'\s+', ' ', text).strip()
     return text
 
 def format_content_line(name, url, content_type="", parent_id=None, child_id=None):
     name = clean_text(name)
+    if not name:
+        name = "Untitled"
     prefix = f"[{content_type}] " if content_type else ""
 
     if parent_id and child_id and ('.mpd' in url or '.m3u8' in url):
