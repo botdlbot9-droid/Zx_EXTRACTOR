@@ -3,26 +3,26 @@ from os import getenv
 
 
 # ------------------------------------------------
-API_ID = int(os.environ.get("37748306", ""))
+API_ID = int(os.environ.get("37748306"))
 # ------------------------------------------------
-API_HASH = os.environ.get("745b95ee77934f04e84594d23b13c0ef","")
+API_HASH = os.environ.get("745b95ee77934f04e84594d23b13c0ef")
 # ------------------------------------------------
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
 # ------------------------------------------------
-BOT_USERNAME = os.environ.get("BOT_USERNAME", "")
+BOT_USERNAME = os.environ.get("BOT_USERNAME")
 BOT_TEXT = "Sumit_Zx"
 # ------------------------------------------------
-OWNER_ID = int(os.environ.get("6884772962", ""))
+OWNER_ID = int(os.environ.get("6884772962"))
 # ------------------------------------------------
 # //LOG CHANNEL ID 
-CHANNEL_ID = int(os.environ.get("-1003086072844", ""))
+CHANNEL_ID = int(os.environ.get("-1003086072844"))
 
 # //FORCE_CHANNEL_ID
-CHANNEL_ID2 = int(os.environ.get("-1003086072844", "")) 
+CHANNEL_ID2 = int(os.environ.get("-1003086072844")) 
 # ------------------------------------------------
-MONGO_URL = os.environ.get("mongodb+srv://itsgoluAPI:jrMHSipToKUEnmcp@cpprivateapi.ghhp3oz.mongodb.net/?appName=CpprivateApi", "")
+MONGO_URL = os.environ.get("mongodb+srv://itsgoluAPI:jrMHSipToKUEnmcp@cpprivateapi.ghhp3oz.mongodb.net/?appName=CpprivateApi")
 # -----------------------------------------------
-PREMIUM_LOGS = int(os.environ.get("PREMIUM_LOGS", ""))
+PREMIUM_LOGS = int(os.environ.get("PREMIUM_LOGS"))
 # -----------------------------------------------
 join = '<a href="">✳️ JOIN BACKUP</a>'
 # -----------------------------------------------
