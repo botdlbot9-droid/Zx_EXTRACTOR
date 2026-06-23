@@ -159,12 +159,21 @@ def extract_mpd_info(url, content_id=None, batch_id=None):
 def clean_text(text):
     if not text:
         return ""
-    text = "".join(ch for ch in text if unicodedata.category(ch)[0]!= "C")
-    text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii')
-    text = text.replace(":", "_").replace("/", "_").replace("|", "_").replace("\\", "_")
-    text = re.sub(r'\s+', ' ', text).strip()
-    return text
 
+    text = "".join(
+        ch for ch in str(text)
+        if unicodedata.category(ch)[0] != "C"
+    )
+
+    text = text.replace(":", " _ ")
+    text = text.replace("/", "_")
+    text = text.replace("\\", "_")
+    text = text.replace("|", "_")
+
+    text = re.sub(r"\s+", " ", text).strip()
+
+    return text
+    
 def format_content_line(name, url, content_type="", parent_id=None, child_id=None):
     name = clean_text(name)
     if not name:
