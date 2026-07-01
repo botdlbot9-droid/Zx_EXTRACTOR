@@ -11,7 +11,7 @@ BOT_USERNAME = os.environ.get("BOT_USERNAME", "")
 BOT_TEXT = "Sumit_Zx"
 OWNER_ID = int(os.environ.get("OWNER_ID", 6884772962))
 CHANNEL_ID = int(os.environ.get("CHANNEL_ID", -1003086072844))
-CHANNEL_ID2 = int(os.environ.get("CHANNEL_ID2", -1004310320389))
+CHANNEL_ID2 = int(os.environ.get("CHANNEL_ID2", -1003492301451))
 MONGO_URL = os.environ.get("MONGO_URL", "mongodb+srv://itsgoluAPI:jrMHSipToKUEnmcp@cpprivateapi.ghhp3oz.mongodb.net/?appName=CpprivateApi")
 PREMIUM_LOGS = int(os.environ.get("PREMIUM_LOGS", 0))
 join = '✳️ JOIN BACKUP'
