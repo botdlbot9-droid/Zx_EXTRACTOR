@@ -1,28 +1,52 @@
+# Core Telegram Libraries
 pyrogram==2.0.106
 pyromod==1.5
-tgcrypto
-aiohttp
-aiofiles
-requests
-hachoir
-cloudscraper
-pycryptodome
-pytz
-motor
-pyrofork
-PyJWT
-aiogram
-beautifulsoup4
-httpx
+pyrofork==2.0.106
+tgcrypto==1.2.5
 python-telegram-bot==20.6
-tqdm
-colorama
-termcolor
-dotenv
-Flask
-gunicorn
-Jinja2
-werkzeug
-itsdangerous
-Unidecode
-bs4
+
+# Async & HTTP
+aiohttp==3.9.1
+aiofiles==23.2.1
+httpx==0.26.0
+requests==2.31.0
+cloudscraper==1.2.71
+
+# Parsing & Scraping
+beautifulsoup4==4.12.2
+bs4==0.0.1
+hachoir==3.2.0
+Unidecode==1.3.7
+
+# Cryptography
+pycryptodome==3.19.0
+PyJWT==2.8.0
+
+# Database
+motor==3.3.2
+
+# Time & Date
+pytz==2023.3
+
+# Web Framework (for Dashboard)
+streamlit==1.29.0
+Flask==3.0.0
+gunicorn==21.2.0
+Jinja2==3.1.2
+werkzeug==3.0.1
+itsdangerous==2.1.2
+
+# Utilities
+tqdm==4.66.1
+colorama==0.4.6
+termcolor==2.4.0
+python-dotenv==1.0.0
+
+# Additional Required Packages
+pandas==2.1.4
+numpy==1.26.3
+asyncio==3.4.3
+aiohttp-retry==2.8.3
+tenacity==8.2.3
+python-multipart==0.0.6
+email-validator==2.1.0
