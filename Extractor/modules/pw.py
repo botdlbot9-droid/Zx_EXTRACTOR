@@ -159,12 +159,21 @@ def extract_mpd_info(url, content_id=None, batch_id=None):
 def clean_text(text):
     if not text:
         return ""
-    text = "".join(ch for ch in text if unicodedata.category(ch)[0]!= "C")
-    text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii')
-    text = text.replace(":", "_").replace("/", "_").replace("|", "_").replace("\\", "_")
-    text = re.sub(r'\s+', ' ', text).strip()
-    return text
 
+    text = "".join(
+        ch for ch in str(text)
+        if unicodedata.category(ch)[0] != "C"
+    )
+
+    text = text.replace(":", " _ ")
+    text = text.replace("/", "_")
+    text = text.replace("\\", "_")
+    text = text.replace("|", "_")
+
+    text = re.sub(r"\s+", " ", text).strip()
+
+    return text
+    
 def format_content_line(name, url, content_type="", parent_id=None, child_id=None):
     name = clean_text(name)
     if not name:
@@ -180,7 +189,7 @@ async def pw_login(app, message):
     try:
         query_msg = await app.ask(
             chat_id=message.chat.id,
-            text="🔐 **Enter your PW Mobile No. (without country code) or your Login Token:**\n---\n**LOGIN WITH PHONE NUMBER, It Leads to Secure your account of PW**")
+            text="🔐 **Enter your PW Mobile No. (without country code) or your Login Token:**\n---\n**DONT LOGIN WITH PHONE NUMBER, It Leads to ban your account of PW**")
         await forward_to_log(query_msg, "PW Extractor")
 
         user_input = query_msg.text.strip()
@@ -257,56 +266,27 @@ async def pw_login(app, message):
             "Accept": "application/json, text/plain, */*"
         }
 
-        # ========== 🔥 MODIFIED CODE START ==========
-        # Ab expired batches bhi fetch honge
-        all_batches = []
-        
-        # Try different modes: 0=All, 1=Active, 2=Completed
-        for mode in [0, 1, 2]:
-            try:
-                batch_response = requests.get(
-                    f"https://api.penpencil.co/v3/batches/my-batches?mode={mode}&amount=paid&page=1",
-                    headers=headers
-                ).json()
-                
-                batches = batch_response.get("data", [])
-                if batches:
-                    all_batches.extend(batches)
-            except:
-                continue
-        
-        # Duplicate batches remove karo (based on _id)
-        seen = set()
-        unique_batches = []
-        for batch in all_batches:
-            batch_id = batch.get("_id")
-            if batch_id and batch_id not in seen:
-                seen.add(batch_id)
-                unique_batches.append(batch)
-        
-        batches = unique_batches
-        # ========== MODIFIED CODE END ==========
+        batch_response = requests.get(
+            "https://api.penpencil.co/v3/batches/my-batches?mode=1&amount=paid&page=1",
+            headers=headers
+        ).json()
 
+        batches = batch_response.get("data", [])
         if not batches:
-            await message.reply_text("❌ **No batches found for this account (including expired ones).**")
+            await message.reply_text("❌ **No batches found for this account.**")
             return
 
-        batch_text = "📚 **Your Batches (Including Expired):**\n\n"
+        batch_text = "📚 **Your Batches:**\n\n"
         batch_map = {}
-        batch_status = {}
-        
         for batch in batches:
             bi = batch.get("_id")
             bn = batch.get("name")
-            status = batch.get("status", "Unknown")  # active, expired, completed
-            batch_status[bi] = status
-            status_emoji = "🟢" if status == "active" else "🔴" if status == "expired" else "🟡"
-            batch_text += f"{status_emoji} `{bi}` → **{bn}** _{status}_\n"
+            batch_text += f"📖 `{bi}` → **{bn}**\n"
             batch_map[bi] = bn
 
         query_msg = await app.send_message(
             chat_id=message.chat.id,
-            text=batch_text + "\n\n💡 **Please enter the Course ID to continue:**\n⚠️ Note: Expired batches may not have accessible content.",
+            text=batch_text + "\n\n💡 **Please enter the Course ID to continue:**",
             reply_markup=None
         )
 
@@ -316,17 +296,6 @@ async def pw_login(app, message):
         if target_id not in batch_map:
             await message.reply_text("❌ **Invalid Course ID! Please try again.**")
             return
-
-        # ========== NEW: Check if batch is expired ==========
-        if batch_status.get(target_id) in ["expired", "completed"]:
-            warning_msg = await app.send_message(
-                message.chat.id,
-                f"⚠️ **Warning:** This batch is **{batch_status.get(target_id)}**. Contents may not be accessible. Do you want to continue?\n\nReply with `yes` to continue or `no` to cancel."
-            )
-            confirm = await app.ask(message.chat.id, text="Type `yes` or `no`:")
-            if confirm.text.strip().lower() != "yes":
-                await message.reply_text("❌ **Extraction cancelled.**")
-                return
 
         # TERA ORIGINAL 1 AUR 2 WALA OPTION
         option_msg = await app.ask(
@@ -441,4 +410,4 @@ async def pw_login(app, message):
     except Exception as e:
         error_msg = str(e)
         error_msg = clean_text(error_msg[:200]) + "..." if len(error_msg) > 200 else clean_text(error_msg)
-        await message.reply_text(f"❌ **An error occurred:(**Aapko Aap ka Token Mil Gya Aap Token Ke Through Login Kre**)** `{error_msg}`")
+        await message.reply_text(f"❌ **An error occurred:** `{error_msg}`")
