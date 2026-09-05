@@ -159,21 +159,12 @@ def extract_mpd_info(url, content_id=None, batch_id=None):
 def clean_text(text):
     if not text:
         return ""
-
-    text = "".join(
-        ch for ch in str(text)
-        if unicodedata.category(ch)[0] != "C"
-    )
-
-    text = text.replace(":", " _ ")
-    text = text.replace("/", "_")
-    text = text.replace("\\", "_")
-    text = text.replace("|", "_")
-
-    text = re.sub(r"\s+", " ", text).strip()
-
+    text = "".join(ch for ch in text if unicodedata.category(ch)[0]!= "C")
+    text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii')
+    text = text.replace(":", "_").replace("/", "_").replace("|", "_").replace("\\", "_")
+    text = re.sub(r'\s+', ' ', text).strip()
     return text
-    
+
 def format_content_line(name, url, content_type="", parent_id=None, child_id=None):
     name = clean_text(name)
     if not name:
@@ -266,9 +257,10 @@ async def pw_login(app, message):
             "Accept": "application/json, text/plain, */*"
         }
 
-        # ========== 🔥 MODIFIED: ALL BATCHES (Active + Expired) ==========
+        # ✅ CHANGE 1: ALL BATCHES FETCH KARNE KA LOGIC (Active + Expired + Completed)
+        # Pehle sirf mode=1 (Active) tha, ab mode=0,1,2 sab fetch karega
         all_batches = []
-        for mode in [0, 1, 2]:
+        for mode in [0, 1, 2]:  # 0=All, 1=Active, 2=Completed/Expired
             try:
                 batch_response = requests.get(
                     f"https://api.penpencil.co/v3/batches/my-batches?mode={mode}&amount=paid&page=1",
@@ -280,6 +272,8 @@ async def pw_login(app, message):
             except:
                 continue
 
+        # ✅ CHANGE 2: DUPLICATE BATCHES REMOVE KARNA
+        # Same _id wali batches ko hatana (kyunki mode=0,1,2 se duplicate aa sakti hain)
         seen = set()
         unique_batches = []
         for batch in all_batches:
@@ -288,23 +282,22 @@ async def pw_login(app, message):
                 seen.add(batch_id)
                 unique_batches.append(batch)
         batches = unique_batches
-        # ========== MODIFIED CODE END ==========
 
         if not batches:
             await message.reply_text("❌ **No batches found for this account (including expired ones).**")
             return
 
-        # ========== MODIFIED: Batch List with Status ==========
+        # ✅ CHANGE 3: BATCH LIST MEIN STATUS Dikhana
+        # Pehle sirf name aur id dikhti thi, ab status (active/expired) bhi dikhega
         batch_text = "📚 **Your Batches (Active & Expired):**\n\n"
         batch_map = {}
         for batch in batches:
             bi = batch.get("_id")
             bn = batch.get("name")
-            status = batch.get("status", "Unknown")
+            status = batch.get("status", "Unknown")  # "active", "expired", "completed"
             status_emoji = "🟢" if status == "active" else "🔴" if status == "expired" else "🟡"
             batch_text += f"{status_emoji} `{bi}` → **{bn}** _{status}_\n"
             batch_map[bi] = bn
-        # ========== MODIFIED CODE END ==========
 
         query_msg = await app.send_message(
             chat_id=message.chat.id,
@@ -318,6 +311,17 @@ async def pw_login(app, message):
         if target_id not in batch_map:
             await message.reply_text("❌ **Invalid Course ID! Please try again.**")
             return
+
+        # ✅ CHANGE 4: EXPIRED BATCH SELECT KARNE PAR WARNING
+        # Agar user expired batch select kare to warning dikhegi
+        if batch.get("status") in ["expired", "completed"]:
+            confirm = await app.ask(
+                message.chat.id,
+                text=f"⚠️ **Warning:** This batch is **{batch.get('status')}**. Contents may not be accessible. Do you want to continue?\n\nReply with `yes` to continue or `no` to cancel."
+            )
+            if confirm.text.strip().lower() != "yes":
+                await message.reply_text("❌ **Extraction cancelled.**")
+                return
 
         # TERA ORIGINAL 1 AUR 2 WALA OPTION
         option_msg = await app.ask(
