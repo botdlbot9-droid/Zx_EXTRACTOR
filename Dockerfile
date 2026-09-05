@@ -1,27 +1,28 @@
-# Use official Python 3.10.11 image
-FROM python:3.10.11-slim
+# Python 3.10 का इस्तेमाल करें (Debian 12 Bookworm पर based)
+FROM python:3.10-slim
 
-# Set work directory
+# Working Directory
 WORKDIR /app
 
-# Install system dependencies
+# System Dependencies Install करें (Debian 12 के लिए)
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first (better caching)
+# Requirements Copy करें
 COPY requirements.txt .
 
-# Install Python dependencies
+# Python Packages Install करें
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy your code
+# पूरा Code Copy करें
 COPY . .
 
-# Expose port (if using web server)
+# Port Expose करें (अगर Web Server है तो)
 EXPOSE 8000
 
-# Run the application
-CMD ["python3", "-m", "Extractor"]
+# Bot Run करें
+CMD ["python3", "run.py"]
