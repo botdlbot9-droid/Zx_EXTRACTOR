@@ -257,27 +257,56 @@ async def pw_login(app, message):
             "Accept": "application/json, text/plain, */*"
         }
 
-        batch_response = requests.get(
-            "https://api.penpencil.co/v3/batches/my-batches?mode=1&amount=paid&page=1",
-            headers=headers
-        ).json()
+        # ========== 🔥 MODIFIED CODE START ==========
+        # Ab expired batches bhi fetch honge
+        all_batches = []
+        
+        # Try different modes: 0=All, 1=Active, 2=Completed
+        for mode in [0, 1, 2]:
+            try:
+                batch_response = requests.get(
+                    f"https://api.penpencil.co/v3/batches/my-batches?mode={mode}&amount=paid&page=1",
+                    headers=headers
+                ).json()
+                
+                batches = batch_response.get("data", [])
+                if batches:
+                    all_batches.extend(batches)
+            except:
+                continue
+        
+        # Duplicate batches remove karo (based on _id)
+        seen = set()
+        unique_batches = []
+        for batch in all_batches:
+            batch_id = batch.get("_id")
+            if batch_id and batch_id not in seen:
+                seen.add(batch_id)
+                unique_batches.append(batch)
+        
+        batches = unique_batches
+        # ========== MODIFIED CODE END ==========
 
-        batches = batch_response.get("data", [])
         if not batches:
-            await message.reply_text("❌ **No batches found for this account.**")
+            await message.reply_text("❌ **No batches found for this account (including expired ones).**")
             return
 
-        batch_text = "📚 **Your Batches:**\n\n"
+        batch_text = "📚 **Your Batches (Including Expired):**\n\n"
         batch_map = {}
+        batch_status = {}
+        
         for batch in batches:
             bi = batch.get("_id")
             bn = batch.get("name")
-            batch_text += f"📖 `{bi}` → **{bn}**\n"
+            status = batch.get("status", "Unknown")  # active, expired, completed
+            batch_status[bi] = status
+            status_emoji = "🟢" if status == "active" else "🔴" if status == "expired" else "🟡"
+            batch_text += f"{status_emoji} `{bi}` → **{bn}** _{status}_\n"
             batch_map[bi] = bn
 
         query_msg = await app.send_message(
             chat_id=message.chat.id,
-            text=batch_text + "\n\n💡 **Please enter the Course ID to continue:**",
+            text=batch_text + "\n\n💡 **Please enter the Course ID to continue:**\n⚠️ Note: Expired batches may not have accessible content.",
             reply_markup=None
         )
 
@@ -287,6 +316,17 @@ async def pw_login(app, message):
         if target_id not in batch_map:
             await message.reply_text("❌ **Invalid Course ID! Please try again.**")
             return
+
+        # ========== NEW: Check if batch is expired ==========
+        if batch_status.get(target_id) in ["expired", "completed"]:
+            warning_msg = await app.send_message(
+                message.chat.id,
+                f"⚠️ **Warning:** This batch is **{batch_status.get(target_id)}**. Contents may not be accessible. Do you want to continue?\n\nReply with `yes` to continue or `no` to cancel."
+            )
+            confirm = await app.ask(message.chat.id, text="Type `yes` or `no`:")
+            if confirm.text.strip().lower() != "yes":
+                await message.reply_text("❌ **Extraction cancelled.**")
+                return
 
         # TERA ORIGINAL 1 AUR 2 WALA OPTION
         option_msg = await app.ask(
