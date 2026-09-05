@@ -1,189 +1,3 @@
-import requests
-import asyncio
-from pyrogram import Client, filters
-import os, sys, re
-import math
-import json
-from config import PREMIUM_LOGS, join
-import subprocess
-import datetime
-from Extractor import app
-from pyrogram import filters
-from datetime import datetime, timedelta
-from Extractor.core.utils import forward_to_log
-import pytz
-import re
-import unicodedata
-import aiohttp
-from concurrent.futures import ThreadPoolExecutor
-from typing import List, Dict
-import time
-
-india_timezone = pytz.timezone('Asia/Kolkata')
-current_time = datetime.now(india_timezone)
-time_new = current_time.strftime("%d-%m-%Y %I:%M %p")
-today_date = current_time.strftime("%Y-%m-%d")
-
-async def fetch_content(session, url, headers) -> dict:
-    try:
-        async with session.get(url, headers=headers) as response:
-            return await response.json()
-    except:
-        return {}
-
-async def process_subject_content(session, target_id, subject_id, headers, all_links: List[str], total_links: List[int], today_only=False):
-    tasks = []
-
-    for page in range(1, 15):
-        schedule_url = f"https://api.penpencil.co/v3/batches/{target_id}/subject/{subject_id}/schedule?page={page}"
-        tasks.append(fetch_content(session, schedule_url, headers))
-
-    content_types = ["videos", "notes", "exercises", "dpp", "quiz"]
-    for content_type in content_types:
-        for page in range(1, 8):
-            url = f"https://api.penpencil.co/v2/batches/{target_id}/subject/{subject_id}/contents?page={page}&contentType={content_type}"
-            tasks.append(fetch_content(session, url, headers))
-
-    responses = await asyncio.gather(*tasks)
-
-    for content_response in responses:
-        if not content_response.get("data"):
-            continue
-
-        for item in content_response.get("data", []):
-            try:
-                # TODAY FILTER - Tera original wala
-                if today_only:
-                    item_date = item.get("createdAt") or item.get("date") or item.get("scheduledDate") or item.get("startTime")
-                    if item_date:
-                        try:
-                            parsed_date = datetime.fromisoformat(item_date.replace('Z', '+00:00'))
-                            item_date_only = parsed_date.astimezone(india_timezone).strftime("%Y-%m-%d")
-                            if item_date_only!= today_date:
-                                continue
-                        except:
-                            pass
-
-                content_id = item.get("_id")
-                topic = clean_text(item.get("topic", item.get("title", item.get("name", ""))))
-
-                video_url = item.get("url") or item.get("videoUrl")
-                video_details = item.get("videoDetails", {})
-                if video_details:
-                    video_url = video_details.get("videoUrl") or video_details.get("hlsUrl") or video_details.get("dashUrl") or video_details.get("url") or video_url
-
-                api_type = item.get("type", "").lower()
-                lecture_type = item.get("lectureType", "").lower()
-                tag = item.get("tag", "").lower()
-
-                if api_type == "dpp" or tag == "dpp" or "dpp" in topic.lower():
-                    content_type = "dpp"
-                elif api_type == "quiz":
-                    content_type = "quiz"
-                elif api_type == "exercise":
-                    content_type = "exercise"
-                elif api_type == "test":
-                    content_type = "test"
-                elif api_type == "notes" or tag == "notes":
-                    content_type = "notes"
-                elif lecture_type or video_url or video_details or api_type == "video":
-                    content_type = "video"
-                else:
-                    content_type = "notes"
-
-                if video_url:
-                    if '.mpd' in video_url or '.m3u8' in video_url:
-                        final_url, parent_id, child_id = extract_mpd_info(video_url, content_id, target_id)
-                        line = format_content_line(topic, final_url, content_type, parent_id, child_id)
-                        all_links.append(line)
-                        total_links[0] += 1
-                    else:
-                        line = format_content_line(topic, video_url, content_type)
-                        all_links.append(line)
-                        total_links[0] += 1
-
-                for hw in item.get("homeworkIds", []):
-                    hw_id = hw.get("_id")
-                    hw_type = hw.get("type", "notes").lower()
-                    hw_topic = clean_text(hw.get("topic", topic))
-
-                    for attachment in hw.get("attachmentIds", []):
-                        try:
-                            name = clean_text(attachment.get("name", hw_topic))
-                            base_url = attachment.get("baseUrl", "")
-                            key = attachment.get("key", "")
-                            if key:
-                                full_url = f"{base_url}{key}"
-                                if '.mpd' in full_url or '.m3u8' in full_url:
-                                    final_url, parent_id, child_id = extract_mpd_info(full_url, hw_id, target_id)
-                                    line = format_content_line(name, final_url, hw_type, parent_id, child_id)
-                                    all_links.append(line)
-                                    total_links[0] += 1
-                                else:
-                                    line = format_content_line(name, full_url, hw_type)
-                                    all_links.append(line)
-                                    total_links[0] += 1
-                        except:
-                            continue
-
-                for attachment in item.get("attachments", []):
-                    try:
-                        name = clean_text(attachment.get("name", topic))
-                        base_url = attachment.get("baseUrl", "")
-                        key = attachment.get("key", "")
-                        attach_type = attachment.get("type", "notes").lower()
-                        if key:
-                            full_url = f"{base_url}{key}"
-                            line = format_content_line(name, full_url, attach_type)
-                            all_links.append(line)
-                            total_links[0] += 1
-                    except:
-                        continue
-
-            except Exception as e:
-                continue
-
-def extract_mpd_info(url, content_id=None, batch_id=None):
-    if 'cloudfront.net' in url:
-        return url, batch_id, content_id
-
-    base_url = url.split('parentId=')[0].rstrip('&') if 'parentId=' in url else url
-    parent_match = re.search(r'parentId=([^&]+)', url)
-    child_match = re.search(r'childId=([^&]+)', url)
-
-    parent_id = parent_match.group(1) if parent_match else batch_id
-    child_id = child_match.group(1) if child_match else content_id
-
-    return base_url, parent_id, child_id
-
-def clean_text(text):
-    if not text:
-        return ""
-
-    text = "".join(
-        ch for ch in str(text)
-        if unicodedata.category(ch)[0] != "C"
-    )
-
-    text = text.replace(":", " _ ")
-    text = text.replace("/", "_")
-    text = text.replace("\\", "_")
-    text = text.replace("|", "_")
-
-    text = re.sub(r"\s+", " ", text).strip()
-
-    return text
-    
-def format_content_line(name, url, content_type="", parent_id=None, child_id=None):
-    name = clean_text(name)
-    if not name:
-        name = "Untitled"
-    prefix = f"[{content_type}] " if content_type else ""
-
-    if parent_id and child_id and ('.mpd' in url or '.m3u8' in url):
-        return f"{prefix}{name}:{url}&parentId={parent_id}&childId={child_id}"
-    return f"{prefix}{name}:{url}"
-
 @app.on_message(filters.command(["pw"]))
 async def pw_login(app, message):
     try:
@@ -266,27 +80,50 @@ async def pw_login(app, message):
             "Accept": "application/json, text/plain, */*"
         }
 
-        batch_response = requests.get(
-            "https://api.penpencil.co/v3/batches/my-batches?mode=1&amount=paid&page=1",
-            headers=headers
-        ).json()
+        # ========== 🔥 MODIFIED: Expired Batches Fetch ==========
+        all_batches = []
+        for mode in [0, 1, 2]:
+            try:
+                batch_response = requests.get(
+                    f"https://api.penpencil.co/v3/batches/my-batches?mode={mode}&amount=paid&page=1",
+                    headers=headers
+                ).json()
+                batches = batch_response.get("data", [])
+                if batches:
+                    all_batches.extend(batches)
+            except:
+                continue
 
-        batches = batch_response.get("data", [])
+        seen = set()
+        unique_batches = []
+        for batch in all_batches:
+            batch_id = batch.get("_id")
+            if batch_id and batch_id not in seen:
+                seen.add(batch_id)
+                unique_batches.append(batch)
+        batches = unique_batches
+        # ========== MODIFIED CODE END ==========
+
         if not batches:
-            await message.reply_text("❌ **No batches found for this account.**")
+            await message.reply_text("❌ **No batches found for this account (including expired ones).**")
             return
 
-        batch_text = "📚 **Your Batches:**\n\n"
+        batch_text = "📚 **Your Batches (Including Expired):**\n\n"
         batch_map = {}
+        batch_status = {}
+
         for batch in batches:
             bi = batch.get("_id")
             bn = batch.get("name")
-            batch_text += f"📖 `{bi}` → **{bn}**\n"
+            status = batch.get("status", "Unknown")
+            batch_status[bi] = status
+            status_emoji = "🟢" if status == "active" else "🔴" if status == "expired" else "🟡"
+            batch_text += f"{status_emoji} `{bi}` → **{bn}** _{status}_\n"
             batch_map[bi] = bn
 
         query_msg = await app.send_message(
             chat_id=message.chat.id,
-            text=batch_text + "\n\n💡 **Please enter the Course ID to continue:**",
+            text=batch_text + "\n\n💡 **Please enter the Course ID to continue:**\n⚠️ Note: Expired batches may not have accessible content.",
             reply_markup=None
         )
 
@@ -296,6 +133,16 @@ async def pw_login(app, message):
         if target_id not in batch_map:
             await message.reply_text("❌ **Invalid Course ID! Please try again.**")
             return
+
+        # ========== NEW: Check if batch is expired ==========
+        if batch_status.get(target_id) in ["expired", "completed"]:
+            confirm = await app.ask(
+                message.chat.id,
+                text=f"⚠️ **Warning:** This batch is **{batch_status.get(target_id)}**. Contents may not be accessible. Do you want to continue?\n\nReply with `yes` to continue or `no` to cancel."
+            )
+            if confirm.text.strip().lower() != "yes":
+                await message.reply_text("❌ **Extraction cancelled.**")
+                return
 
         # TERA ORIGINAL 1 AUR 2 WALA OPTION
         option_msg = await app.ask(
