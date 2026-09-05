@@ -4,19 +4,24 @@ FROM python:3.10.11-slim
 # Set work directory
 WORKDIR /app
 
-# Install system dependencies (if needed, can be removed if not using any OS deps)
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements (if you use one)
+# Copy requirements first (better caching)
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy your code
 COPY . .
 
-# Run the Extractor module
-CMD ["sh", "-c", "gunicorn app:app -b 0.0.0.0:8000 & python3 -m Extractor"]
+# Expose port (if using web server)
+EXPOSE 8000
+
+# Run the application
+CMD ["python3", "-m", "Extractor"]
